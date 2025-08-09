@@ -1,0 +1,37 @@
+{
+  "name": "password-manager-core",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Secure password manager core with encryption and synchronization capabilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "clean": "rm -rf dist",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": [
+    "password-manager",
+    "encryption",
+    "security",
+    "typescript",
+    "webdav",
+    "sync"
+  ],
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "libsodium-wrappers": "^0.7.15",
+    "uuid": "^11.1.0"
+  }
+}

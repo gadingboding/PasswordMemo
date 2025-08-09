@@ -1,0 +1,26 @@
+{
+  "template": {
+    "name": "简单测试凭据",
+    "fields": [
+      {
+        "name": "测试内容",
+        "type": "text",
+        "optional": false
+      }
+    ]
+  },
+  "record": {
+    "title": "测试记录",
+    "fieldData": {
+      "测试内容": "这是一个简单的测试内容"
+    },
+    "labels": []
+  },
+  "verificationRecord": {
+    "title": "Custom Path Verification Record",
+    "fieldData": {
+      "测试内容": "这是一个用于验证自定义路径的记录"
+    },
+    "labels": []
+  }
+}

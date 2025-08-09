@@ -1,0 +1,4 @@
+packages:
+  - 'core'
+  - 'flow_test'
+  - 'password-manager-extension'

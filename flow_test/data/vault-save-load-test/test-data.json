@@ -1,0 +1,32 @@
+{
+  "template": {
+    "name": "网站账号",
+    "fields": [
+      {
+        "name": "网站",
+        "type": "text",
+        "optional": false
+      },
+      {
+        "name": "用户名", 
+        "type": "text",
+        "optional": false
+      },
+      {
+        "name": "密码",
+        "type": "password",
+        "optional": false
+      }
+    ]
+  },
+  "record": {
+    "title": "GitHub账号",
+    "fieldData": {
+      "网站": "github.com",
+      "用户名": "testuser",
+      "密码": "TestPassword123!"
+    },
+    "labels": ["开发", "重要"]
+  },
+  "pinExpiryHours": 24
+}

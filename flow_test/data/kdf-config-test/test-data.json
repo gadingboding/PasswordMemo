@@ -1,0 +1,55 @@
+{
+  "masterPassword": "test-master-password-123",
+  "template": {
+    "name": "Website Login",
+    "fields": [
+      {
+        "name": "用户名",
+        "type": "text",
+        "optional": false
+      },
+      {
+        "name": "密码",
+        "type": "password",
+        "optional": false
+      }
+    ]
+  },
+  "record": {
+    "title": "测试账户",
+    "fieldData": {
+      "用户名": "testuser@example.com",
+      "密码": "secure-password-456"
+    },
+    "labels": []
+  },
+  "kdfConfigs": {
+    "default": {
+      "algorithm": "pbkdf2",
+      "params": {
+        "salt": "default-salt-value-for-testing",
+        "iterations": 600000,
+        "hash": "sha256",
+        "keyLength": 32
+      }
+    },
+    "custom": {
+      "algorithm": "pbkdf2",
+      "params": {
+        "salt": "custom-salt-value-for-testing",
+        "iterations": 1000000,
+        "hash": "sha256",
+        "keyLength": 32
+      }
+    },
+    "insecure": {
+      "algorithm": "pbkdf2",
+      "params": {
+        "salt": "insecure-salt-value-for-testing",
+        "iterations": 10000,
+        "hash": "sha256",
+        "keyLength": 16
+      }
+    }
+  }
+}

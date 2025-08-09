@@ -1,0 +1,137 @@
+import { useState } from 'react'
+import { Lock, Eye, EyeOff, Key } from 'lucide-react'
+import { useAuthStore } from '@/store/auth-store'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+
+export function LockOverlay() {
+  const { login } = useAuthStore()
+  const [masterPassword, setMasterPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!masterPassword.trim()) return
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const success = await login(masterPassword)
+      if (!success) {
+        setError('Invalid master password. Please try again.')
+        setMasterPassword('')
+      }
+      // 如果成功，组件会自动隐藏因为isAuthenticated变为true
+    } catch (err) {
+      console.error('Login failed:', err)
+      setError('Authentication failed. Please try again.')
+      setMasterPassword('')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUsePIN = () => {
+    // TODO: Implement PIN login
+    console.log('PIN login not implemented yet')
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+      <div className="w-full max-w-md mx-4">
+        {/* Lock Icon */}
+        <div className="flex justify-center mb-8">
+          <div className="p-4 bg-slate-800 rounded-full">
+            <Lock className="h-12 w-12 text-blue-400" />
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Vault Locked</h1>
+          <p className="text-slate-400">Enter your master password to unlock</p>
+        </div>
+
+        {/* Unlock Form */}
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="masterPassword" className="block text-sm font-medium text-slate-200">
+                Master Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="masterPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={masterPassword}
+                  onChange={(e) => setMasterPassword(e.target.value)}
+                  placeholder="Enter master password"
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pr-12"
+                  required
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <Button
+                type="submit"
+                disabled={loading || !masterPassword.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Unlocking...
+                  </div>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Unlock Vault
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleUsePIN}
+                className="w-full text-slate-300 hover:text-white hover:bg-slate-700"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Use PIN instead
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Hint */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-slate-500">
+            Don't remember your master password? 
+            <br />
+            You'll need to reset your vault.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}

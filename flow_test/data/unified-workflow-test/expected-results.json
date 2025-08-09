@@ -1,0 +1,29 @@
+{
+  "vaultUnlock": {
+    "success": true,
+    "masterKeyGenerated": true
+  },
+  "template": {
+    "created": true,
+    "fieldCount": 2
+  },
+  "record": {
+    "created": true,
+    "title": "测试网站登录",
+    "fieldCount": 2
+  },
+  "vaultOperations": {
+    "lockUnlockWithPassword": true,
+    "pinSetup": true,
+    "lockUnlockWithPin": true
+  },
+  "recordVerification": {
+    "titleMatches": true,
+    "usernameMatches": true,
+    "passwordMatches": true
+  },
+  "listOperations": {
+    "templatesFound": true,
+    "recordsFound": true
+  }
+}
