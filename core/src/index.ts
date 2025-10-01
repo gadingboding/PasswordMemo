@@ -14,7 +14,6 @@ export * from './types/index.js';
 export type {SyncConfig} from './types/sync.js';
 
 // Export core functionality modules for direct access if needed
-export * from './auth-manager.js';
 export {CryptographyEngine} from './crypto-engine.js';
 export {VaultManager} from './vault-manager.js';
 export * from './configuration-manager.js';

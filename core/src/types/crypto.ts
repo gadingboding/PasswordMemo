@@ -27,7 +27,7 @@ export type Base64String = string;
 export type MasterPassword = string;
 
 export const AES_GCM = "AES-GCM";
-
+export const CHACHA20_POLY1305_IETF = "ChaCha20-Poly1305-IETF";
 
 /**
  * Encrypted data container with metadata
@@ -38,7 +38,7 @@ export interface EncryptedData {
   /** Base64 encoded nonce/IV */
   nonce: Base64String;
   /** Algorithm used for encryption */
-  algorithm: 'xchacha20-poly1305' | 'AES-GCM';
+  algorithm: 'xchacha20-poly1305' | 'AES-GCM' | typeof CHACHA20_POLY1305_IETF;
 }
 
 

@@ -5,7 +5,7 @@
  * and padding for the password manager.
  */
 
-import * as sodium from 'libsodium-wrappers';
+import _sodium from 'libsodium-wrappers';
 import {
   BinaryData,
   Base64String,
@@ -13,7 +13,7 @@ import {
   PaddedData,
   PaddingBucketSize,
   PADDING_BUCKETS,
-  MasterPassword, AES_GCM
+  MasterPassword, AES_GCM, CHACHA20_POLY1305_IETF
 } from './types/index.js';
 
 /**
@@ -23,7 +23,7 @@ let sodiumReady = false;
 
 async function ensureSodiumReady(): Promise<void> {
   if (!sodiumReady) {
-    await sodium.ready;
+    await _sodium.ready;
     sodiumReady = true;
   }
 }
@@ -37,6 +37,9 @@ export class CryptographyEngine {
    */
   static randomBytes(length: number): BinaryData {
     if (!sodiumReady) {
+      // Auto-initialize if not ready
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      ensureSodiumReady();
       throw new Error('Sodium not initialized. Call ensureSodiumReady() first.');
     }
 
@@ -187,7 +190,7 @@ export class CryptographyEngine {
   }
 
   /**
-   * Encrypt data using AES-GCM with padding
+   * Encrypt data using ChaCha20-Poly1305-IETF with padding
    */
   static async encrypt(data: string | BinaryData, key: BinaryData): Promise<EncryptedData> {
     await ensureSodiumReady();
@@ -200,133 +203,52 @@ export class CryptographyEngine {
     // Apply padding
     const paddedResult = await this.pad(new Uint8Array(dataBytes));
 
-    // Generate nonce (12 bytes for AES-GCM)
-    const nonce = this.randomBytes(12);
+    // Generate nonce (12 bytes for ChaCha20-Poly1305-IETF)
+    const nonce = _sodium.randombytes_buf(_sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES);
 
+    // Use libsodium for encryption
+    const encrypted = _sodium.crypto_aead_chacha20poly1305_ietf_encrypt(
+      paddedResult.data,  // plaintext
+      null,              // additional data (none)
+      null,              // nsec (unused for this construction)
+      nonce,             // nonce
+      key.slice(0, _sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES)  // key (32 bytes)
+    );
 
-    // Use Web Crypto API for encryption
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      // Browser environment
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new Uint8Array(key),
-        {name: 'AES-GCM'},
-        false,
-        ['encrypt']
-      );
-
-      const encrypted = await crypto.subtle.encrypt(
-        {
-          name: AES_GCM,
-          iv: new Uint8Array(nonce),
-          tagLength: 128, // Explicitly set tag length to 128 bits (16 bytes)
-        },
-        cryptoKey,
-        new Uint8Array(paddedResult.data)
-      );
-
-      return {
-        ciphertext: this.bytesToBase64(new Uint8Array(encrypted)),
-        nonce: this.bytesToBase64(nonce),
-        algorithm: AES_GCM,
-      };
-    } else {
-      // Node.js environment
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const crypto = require('crypto');
-
-      const cipher = crypto.createCipheriv(
-        'aes-256-gcm',
-        Buffer.from(key),
-        Buffer.from(nonce)
-      );
-
-      const ciphertext = Buffer.concat([
-        cipher.update(Buffer.from(paddedResult.data)),
-        cipher.final()
-      ]);
-
-      const authTag = cipher.getAuthTag();
-
-      // Combine ciphertext and auth tag
-      const combined = Buffer.concat([ciphertext, authTag]);
-
-      return {
-        ciphertext: this.bytesToBase64(new Uint8Array(combined)),
-        nonce: this.bytesToBase64(nonce),
-        algorithm: AES_GCM,
-      };
-    }
+    return {
+      ciphertext: this.bytesToBase64(new Uint8Array(encrypted)),
+      nonce: this.bytesToBase64(new Uint8Array(nonce)),
+      algorithm: CHACHA20_POLY1305_IETF,
+    };
   }
 
   /**
-   * Decrypt data using AES-GCM and remove padding
+   * Decrypt data using ChaCha20-Poly1305-IETF and remove padding
    */
   static async decrypt(encryptedData: EncryptedData, key: BinaryData): Promise<BinaryData> {
     await ensureSodiumReady();
 
-    if (encryptedData.algorithm !== AES_GCM) {
+    if (encryptedData.algorithm !== CHACHA20_POLY1305_IETF) {
       throw new Error(`Unsupported algorithm: ${encryptedData.algorithm}`);
     }
 
     const ciphertext = this.base64ToBytes(encryptedData.ciphertext);
     const nonce = this.base64ToBytes(encryptedData.nonce);
 
-
-    // Use Web Crypto API for decryption
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      // Browser environment
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new Uint8Array(key),
-        {name: 'AES-GCM'},
-        false,
-        ['decrypt']
+    try {
+      // Use libsodium for decryption
+      const decrypted = _sodium.crypto_aead_chacha20poly1305_ietf_decrypt(
+        null,                                   // nsec (unused)
+        ciphertext,                             // ciphertext + auth tag
+        null,                                   // additional data (none)
+        nonce,                                  // nonce
+        key.slice(0, _sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES)  // key (32 bytes)
       );
-
-      try {
-        // Web Crypto API expects the authentication tag to be included in the ciphertext
-        // The ciphertext should already contain the auth tag (as produced by our encrypt method)
-        const decrypted = await crypto.subtle.decrypt(
-          {
-            name: 'AES-GCM',
-            iv: new Uint8Array(nonce),
-            tagLength: 128, // Explicitly set tag length to 128 bits (16 bytes)
-          },
-          cryptoKey,
-          new Uint8Array(ciphertext)
-        );
-
-        // Remove padding
-        return this.unpad(new Uint8Array(decrypted));
-      } catch (error) {
-        throw new Error(`Decryption failed: ${error}`);
-      }
-    } else {
-      // Node.js environment
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const crypto = require('crypto');
-
-      // In Node.js, the last 16 bytes are the auth tag
-      const authTagLength = 16;
-      const ciphertextWithoutTag = ciphertext.slice(0, ciphertext.length - authTagLength);
-      const authTag = ciphertext.slice(ciphertext.length - authTagLength);
-
-      const decipher = crypto.createDecipheriv(
-        'aes-256-gcm',
-        Buffer.from(key),
-        Buffer.from(nonce)
-      );
-
-      decipher.setAuthTag(Buffer.from(authTag));
-
-      const decrypted = Buffer.concat([
-        decipher.update(Buffer.from(ciphertextWithoutTag)),
-        decipher.final()
-      ]);
 
       // Remove padding
       return this.unpad(new Uint8Array(decrypted));
+    } catch (error) {
+      throw new Error(`Decryption failed: ${error}`);
     }
   }
 
