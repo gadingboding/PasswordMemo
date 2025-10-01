@@ -153,7 +153,6 @@ export class PasswordManager {
           await this.configManager.saveWebDAVConfig(config.webdav, masterKey);
         }
       } else if (uninitialized) {
-
         // Initialize vault KDF configuration with a unique salt for KDF
         // This ensures each instance has its own unique KDF salt for enhanced security
         const kdfSalt = await CryptographyEngine.generateSalt();
@@ -170,6 +169,9 @@ export class PasswordManager {
 
         // Save vault to storage
         await this.vaultManager.saveVault();
+        
+        // Create user profile when creating new vault
+        await this.configManager.saveUserProfile({});
       }
 
       this.initialized = true;
