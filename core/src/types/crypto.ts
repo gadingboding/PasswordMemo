@@ -30,16 +30,33 @@ export const AES_GCM = "AES-GCM";
 export const CHACHA20_POLY1305_IETF = "ChaCha20-Poly1305-IETF";
 
 /**
- * Encrypted data container with metadata
+ * AES-GCM encrypted data with nonce length validation (12 bytes)
  */
-export interface EncryptedData {
+export interface AESGCMEncryptedData {
   /** Base64 encoded ciphertext */
   ciphertext: Base64String;
-  /** Base64 encoded nonce/IV */
+  /** Base64 encoded nonce (must be exactly 12 bytes when decoded) */
   nonce: Base64String;
-  /** Algorithm used for encryption */
-  algorithm: 'xchacha20-poly1305' | 'AES-GCM' | typeof CHACHA20_POLY1305_IETF;
+  /** Algorithm identifier */
+  algorithm: typeof AES_GCM;
 }
+
+/**
+ * ChaCha20-Poly1305-IETF encrypted data with nonce length validation (12 bytes)
+ */
+export interface ChaCha20Poly1305IETFEncryptedData {
+  /** Base64 encoded ciphertext */
+  ciphertext: Base64String;
+  /** Base64 encoded nonce (must be exactly 12 bytes when decoded) */
+  nonce: Base64String;
+  /** Algorithm identifier */
+  algorithm: typeof CHACHA20_POLY1305_IETF;
+}
+
+/**
+ * Union type for all encrypted data types
+ */
+export type EncryptedData = AESGCMEncryptedData | ChaCha20Poly1305IETFEncryptedData;
 
 
 /**

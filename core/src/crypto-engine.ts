@@ -10,6 +10,8 @@ import {
   BinaryData,
   Base64String,
   EncryptedData,
+  AESGCMEncryptedData,
+  ChaCha20Poly1305IETFEncryptedData,
   PaddedData,
   PaddingBucketSize,
   PADDING_BUCKETS,
@@ -29,9 +31,59 @@ async function ensureSodiumReady(): Promise<void> {
 }
 
 /**
+ * Nonce length validation constants
+ */
+const NONCE_LENGTHS = {
+  [AES_GCM]: 12, // 96 bits for AES-GCM
+  [CHACHA20_POLY1305_IETF]: 12, // 96 bits for ChaCha20-Poly1305-IETF
+} as const;
+
+/**
  * Cryptography Engine implementation
  */
 export class CryptographyEngine {
+  /**
+   * Validate nonce length for specific algorithm
+   */
+  private static async validateNonceLength(
+    nonce: Base64String,
+    algorithm: typeof AES_GCM | typeof CHACHA20_POLY1305_IETF
+  ): Promise<void> {
+    const expectedLength = NONCE_LENGTHS[algorithm];
+    const nonceBytes = await this.base64ToBytes(nonce);
+
+    if (nonceBytes.length !== expectedLength) {
+      throw new Error(
+        `Invalid nonce length for ${algorithm}: expected ${expectedLength} bytes, got ${nonceBytes.length} bytes`
+      );
+    }
+  }
+
+  /**
+   * Create algorithm-specific encrypted data with nonce validation
+   */
+  private static async createEncryptedData(
+    ciphertext: Base64String,
+    nonce: Base64String,
+    algorithm: typeof AES_GCM | typeof CHACHA20_POLY1305_IETF
+  ): Promise<EncryptedData> {
+    // Validate nonce length before creating encrypted data
+    await this.validateNonceLength(nonce, algorithm);
+
+    if (algorithm === AES_GCM) {
+      return {
+        ciphertext,
+        nonce,
+        algorithm: AES_GCM,
+      } as AESGCMEncryptedData;
+    } else {
+      return {
+        ciphertext,
+        nonce,
+        algorithm: CHACHA20_POLY1305_IETF,
+      } as ChaCha20Poly1305IETFEncryptedData;
+    }
+  }
   /**
    * Generate cryptographically secure random bytes
    */
@@ -69,6 +121,18 @@ export class CryptographyEngine {
       }
     }
     return hexString;
+  }
+
+  /**
+   * Generate a random nonce for specific algorithm
+   */
+  static async generateNonce(
+    algorithm: typeof AES_GCM | typeof CHACHA20_POLY1305_IETF
+  ): Promise<Base64String> {
+    await ensureSodiumReady();
+    const length = NONCE_LENGTHS[algorithm];
+    const nonce = await this.randomBytes(length);
+    return this.bytesToBase64(nonce);
   }
 
   /**
@@ -158,8 +222,9 @@ export class CryptographyEngine {
     // Apply padding
     const paddedResult = await this.pad(new Uint8Array(dataBytes));
 
-    // Generate nonce (12 bytes for ChaCha20-Poly1305-IETF)
-    const nonce = _sodium.randombytes_buf(_sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES);
+    // Generate nonce for ChaCha20-Poly1305-IETF
+    const nonceBase64 = await this.generateNonce(CHACHA20_POLY1305_IETF);
+    const nonce = await this.base64ToBytes(nonceBase64);
 
     // Use libsodium for encryption
     const encrypted = _sodium.crypto_aead_chacha20poly1305_ietf_encrypt(
@@ -170,11 +235,11 @@ export class CryptographyEngine {
       key.slice(0, _sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES)  // key (32 bytes)
     );
 
-    return {
-      ciphertext: await this.bytesToBase64(new Uint8Array(encrypted)),
-      nonce: await this.bytesToBase64(new Uint8Array(nonce)),
-      algorithm: CHACHA20_POLY1305_IETF,
-    };
+    return this.createEncryptedData(
+      await this.bytesToBase64(new Uint8Array(encrypted)),
+      nonceBase64,
+      CHACHA20_POLY1305_IETF
+    );
   }
 
   /**
@@ -182,6 +247,9 @@ export class CryptographyEngine {
    */
   static async decrypt(encryptedData: EncryptedData, key: BinaryData): Promise<BinaryData> {
     await ensureSodiumReady();
+
+    // Validate nonce length based on algorithm
+    await this.validateNonceLength(encryptedData.nonce, encryptedData.algorithm);
 
     if (encryptedData.algorithm !== CHACHA20_POLY1305_IETF) {
       throw new Error(`Unsupported algorithm: ${encryptedData.algorithm}`);
