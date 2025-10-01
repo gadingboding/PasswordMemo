@@ -79,9 +79,7 @@ export class SimpleWebDAVSyncTest {
     
     try {
       // Authenticate with first password manager
-      const authResult = await this.passwordManager1.authenticate({
-        password: this.userProfile.masterPassword
-      });
+      const authResult = await this.passwordManager1.authenticate(this.userProfile.masterPassword);
 
       if (!authResult.success) {
         throw new Error(`Authentication failed: ${authResult.error}`);
@@ -161,9 +159,7 @@ export class SimpleWebDAVSyncTest {
     
     try {
       // Authenticate with second password manager (new session)
-      const authResult = await this.passwordManager2.authenticate({
-        password: this.userProfile.masterPassword
-      });
+      const authResult = await this.passwordManager2.authenticate(this.userProfile.masterPassword);
 
       if (!authResult.success) {
         throw new Error(`Authentication failed: ${authResult.error}`);
@@ -329,9 +325,9 @@ export class SimpleWebDAVSyncTest {
     this.logger.info(`=== ${stepName} ===`);
     
     try {
-      // Logout from both password managers
-      this.passwordManager1.logout();
-      this.passwordManager2.logout();
+      // Lock both password managers
+      this.passwordManager1.lock();
+      this.passwordManager2.lock();
 
       this.logger.stepComplete(stepName, true, 'Test data cleanup completed');
     } catch (error) {

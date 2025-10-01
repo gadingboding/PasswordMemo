@@ -15,10 +15,9 @@
  * 8. Verify that the record content matches the original
  */
 
-import { PasswordManager } from 'password-manager-core';
-import { KDFConfigAPI } from 'password-manager-core';
+import { PasswordManager, KDFConfigAPI } from 'password-manager-core';
 import { createDataManager, createLogger, TestUtils, LogLevel } from '../../common/index.js';
-import { cleanTestResults } from '../../common/test-utils.js';
+import { cleanTestResults } from '../../common/index.js';
 
 export class SaltUpdateTest {
   private passwordManager: PasswordManager;
@@ -41,8 +40,7 @@ export class SaltUpdateTest {
     
     // Initialize KDFConfigAPI after password manager is created
     this.kdfConfigAPI = new KDFConfigAPI(
-      (this.passwordManager as any).vaultManager,
-      (this.passwordManager as any).authManager
+      (this.passwordManager as any).vaultManager
     );
   }
 
@@ -91,18 +89,13 @@ export class SaltUpdateTest {
     try {
       this.logger.info(`Attempting authentication with master password`, stepName);
       
-      const authResult = await this.passwordManager.authenticate({
-        password: this.userProfile.masterPassword
-      });
+      const authResult = await this.passwordManager.authenticate(this.userProfile.masterPassword);
 
       if (!authResult.success) {
         throw new Error(`Authentication failed: ${authResult.error}`);
       }
 
-      this.logger.info(`Authentication successful`, stepName, {
-        sessionToken: authResult.session?.sessionToken,
-        expiresAt: authResult.session?.expiresAt
-      });
+      this.logger.info(`Authentication successful`, stepName);
       
       this.logger.stepComplete(stepName, true, 'Authentication successful');
     } catch (error) {
@@ -253,15 +246,15 @@ export class SaltUpdateTest {
     
     try {
       // Create new KDF configuration with new salt
-      const newKdfConfig = await this.kdfConfigAPI.createKDFConfig('pbkdf2');
+      const newKdfConfig = await this.kdfConfigAPI.createKDFConfig('argon2id');
       
-      // Update iterations to match test data
-      (newKdfConfig.params as any).iterations = this.testData.newKdfConfig.params.iterations;
+      // Update opslimit to match test data
+      (newKdfConfig.params as any).opslimit = this.testData.newKdfConfig.params.opslimit;
       
       this.logger.info('Updating KDF configuration with new salt', stepName, {
         algorithm: newKdfConfig.algorithm,
-        iterations: (newKdfConfig.params as any).iterations,
-        hash: (newKdfConfig.params as any).hash,
+        opslimit: (newKdfConfig.params as any).opslimit,
+        memlimit: (newKdfConfig.params as any).memlimit,
         keyLength: newKdfConfig.params.keyLength,
         newSalt: newKdfConfig.params.salt ? '[GENERATED]' : '[MISSING]'
       });

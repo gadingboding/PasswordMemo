@@ -9,6 +9,7 @@ import { WebDAVSyncTest } from './tests/webdav-sync-test/test.js';
 import { SimpleWebDAVSyncTest } from './tests/webdav-simple-test/test.js';
 import { VaultSaveLoadTest } from './tests/vault-save-load-test/test.js';
 import { KDFConfigTest } from './tests/kdf-config-test/test.js';
+import { SaltUpdateTest } from './tests/salt-update-test/test.js';
 import { createLogger, LogLevel, TestUtils } from './common/index.js';
 
 interface TestResult {
@@ -32,6 +33,7 @@ class TestRunner {
     await this.runTest('Simple WebDAV Sync Test', () => this.runSimpleWebDAVSyncTest());
     await this.runTest('Vault Save/Load Interface Test', () => this.runVaultSaveLoadTest());
     await this.runTest('KDF Configuration Test', () => this.runKDFConfigTest());
+    await this.runTest('Salt Update Test', () => this.runSaltUpdateTest());
     
     const totalDuration = Date.now() - startTime;
     
@@ -89,6 +91,11 @@ class TestRunner {
 
   private async runKDFConfigTest(): Promise<void> {
     const test = new KDFConfigTest();
+    await test.run();
+  }
+
+  private async runSaltUpdateTest(): Promise<void> {
+    const test = new SaltUpdateTest();
     await test.run();
   }
 

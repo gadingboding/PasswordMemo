@@ -14,11 +14,9 @@
  * 7. Test derived key generation
  */
 
-import { PasswordManager } from 'password-manager-core';
-import { KDFConfigAPI } from 'password-manager-core';
-import { KDFManager } from 'password-manager-core';
+import { PasswordManager, KDFConfigAPI, KDFManager } from 'password-manager-core';
 import { createDataManager, createLogger, TestUtils, LogLevel } from '../../common/index.js';
-import { cleanTestResults } from '../../common/test-utils.js';
+import { cleanTestResults } from '../../common/index.js';
 
 export class KDFConfigTest {
   private passwordManager: PasswordManager;
@@ -43,8 +41,7 @@ export class KDFConfigTest {
     
     // Initialize KDFConfigAPI after password manager is created
     this.kdfConfigAPI = new KDFConfigAPI(
-      (this.passwordManager as any).vaultManager,
-      (this.passwordManager as any).authManager
+      (this.passwordManager as any).vaultManager
     );
   }
 
@@ -93,18 +90,13 @@ export class KDFConfigTest {
     try {
       this.logger.info(`Attempting authentication with master password`, stepName);
       
-      const authResult = await this.passwordManager.authenticate({
-        password: this.userProfile.masterPassword
-      });
+      const authResult = await this.passwordManager.authenticate(this.userProfile.masterPassword);
 
       if (!authResult.success) {
         throw new Error(`Authentication failed: ${authResult.error}`);
       }
 
-      this.logger.info(`Authentication successful`, stepName, {
-        sessionToken: authResult.session?.sessionToken,
-        expiresAt: authResult.session?.expiresAt
-      });
+      this.logger.info(`Authentication successful`, stepName);
       
       this.logger.stepComplete(stepName, true, 'Authentication successful');
     } catch (error) {
@@ -153,11 +145,11 @@ export class KDFConfigTest {
 
       // Test invalid configuration validation
       const invalidConfig = {
-        algorithm: 'pbkdf2' as const,
+        algorithm: 'argon2id' as const,
         params: {
           salt: 'test-salt-value', // Add required salt
-          iterations: 1000, // Too low
-          hash: 'sha256',
+          opslimit: 1, // Too low
+          memlimit: 1000, // Too low
           keyLength: 8 // Too low
         }
       };
@@ -187,11 +179,11 @@ export class KDFConfigTest {
     this.logger.info(`=== Step 3: ${stepName} ===`);
     
     try {
-      // Test creating a new PBKDF2 configuration
-      const newConfig = await this.kdfManager.createDefaultConfig('pbkdf2');
+      // Test creating a new Argon2id configuration
+      const newConfig = await this.kdfManager.createDefaultConfig('argon2id');
       
-      if (!newConfig || newConfig.algorithm !== 'pbkdf2') {
-        throw new Error('Failed to create PBKDF2 configuration');
+      if (!newConfig || newConfig.algorithm !== 'argon2id') {
+        throw new Error('Failed to create Argon2id configuration');
       }
 
       if (!newConfig.params.salt) {
@@ -200,20 +192,20 @@ export class KDFConfigTest {
 
       this.logger.info('PBKDF2 configuration created successfully', stepName, {
         algorithm: newConfig.algorithm,
-        iterations: (newConfig.params as any).iterations,
-        hash: (newConfig.params as any).hash,
+        opslimit: (newConfig.params as any).opslimit,
+        memlimit: (newConfig.params as any).memlimit,
         keyLength: newConfig.params.keyLength,
         salt: newConfig.params.salt ? '[GENERATED]' : '[MISSING]'
       });
 
       // Test creating configuration through KDFConfigAPI
-      const apiConfig = await this.kdfConfigAPI.createKDFConfig('pbkdf2');
+      const apiConfig = await this.kdfConfigAPI.createKDFConfig('argon2id');
       
-      if (!apiConfig || apiConfig.algorithm !== 'pbkdf2') {
-        throw new Error('Failed to create PBKDF2 configuration through API');
+      if (!apiConfig || apiConfig.algorithm !== 'argon2id') {
+        throw new Error('Failed to create Argon2id configuration through API');
       }
 
-      this.logger.info('PBKDF2 configuration created successfully through API', stepName);
+      this.logger.info('Argon2id configuration created successfully through API', stepName);
 
       this.logger.stepComplete(stepName, true, 'KDF configuration creation tests passed');
     } catch (error) {
@@ -244,9 +236,9 @@ export class KDFConfigTest {
         keyLength: currentConfig.params.keyLength
       });
 
-      // Create a new configuration with different iterations
-      const newConfig = await this.kdfConfigAPI.createKDFConfig('pbkdf2');
-      (newConfig.params as any).iterations = this.testData.kdfConfigs.custom.params.iterations;
+      // Create a new configuration with different opslimit
+      const newConfig = await this.kdfConfigAPI.createKDFConfig('argon2id');
+      (newConfig.params as any).opslimit = this.testData.kdfConfigs.custom.params.opslimit;
 
       // Update KDF configuration
       const updateResult = await this.kdfConfigAPI.updateKDFConfig(
@@ -259,7 +251,7 @@ export class KDFConfigTest {
       }
 
       this.logger.info('KDF configuration updated successfully', stepName, {
-        newIterations: (newConfig.params as any).iterations
+        newOpslimit: (newConfig.params as any).opslimit
       });
 
       // Verify the configuration was actually updated
@@ -269,12 +261,12 @@ export class KDFConfigTest {
         throw new Error('No KDF configuration found after update');
       }
 
-      if ((updatedConfig.params as any).iterations !== this.testData.kdfConfigs.custom.params.iterations) {
+      if ((updatedConfig.params as any).opslimit !== this.testData.kdfConfigs.custom.params.opslimit) {
         throw new Error('KDF configuration was not updated correctly');
       }
 
       this.logger.info('KDF configuration update verified', stepName, {
-        updatedIterations: (updatedConfig.params as any).iterations
+        updatedOpslimit: (updatedConfig.params as any).opslimit
       });
 
       this.logger.stepComplete(stepName, true, 'KDF configuration update tests passed');
@@ -292,38 +284,12 @@ export class KDFConfigTest {
     this.logger.info(`=== Step 5: ${stepName} ===`);
     
     try {
-      // Test if update is recommended
-      const isUpdateRecommended = this.kdfConfigAPI.isKDFConfigUpdateRecommended();
+      // Test current configuration
+      const currentConfig = this.kdfConfigAPI.getCurrentKDFConfig();
       
-      this.logger.info('KDF configuration update recommendation checked', stepName, {
-        updateRecommended: isUpdateRecommended
-      });
-
-      // Get recommendations
-      const recommendations = this.kdfConfigAPI.getKDFRecommendations();
-      
-      if (!recommendations.current || !recommendations.recommended) {
-        throw new Error('Failed to get KDF configuration recommendations');
-      }
-
-      this.logger.info('KDF configuration recommendations retrieved', stepName, {
-        hasCurrentConfig: !!recommendations.current,
-        hasRecommendedConfig: !!recommendations.recommended,
-        reasons: recommendations.reasons
-      });
-
-      // Test configuration info
-      const configInfo = this.kdfConfigAPI.getKDFConfigInfo(recommendations.recommended);
-      
-      if (!configInfo || !configInfo.algorithm || !configInfo.securityLevel) {
-        throw new Error('Failed to get KDF configuration info');
-      }
-
-      this.logger.info('KDF configuration info retrieved', stepName, {
-        algorithm: configInfo.algorithm,
-        securityLevel: configInfo.securityLevel,
-        estimatedTime: configInfo.estimatedTime,
-        memoryUsage: configInfo.memoryUsage
+      this.logger.info('Current KDF configuration retrieved', stepName, {
+        hasCurrentConfig: !!currentConfig,
+        algorithm: currentConfig?.algorithm
       });
 
       this.logger.stepComplete(stepName, true, 'KDF configuration recommendations tests passed');

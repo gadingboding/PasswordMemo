@@ -10,7 +10,7 @@
 
 import { PasswordManager } from 'password-manager-core';
 import { createDataManager, createLogger, TestUtils, LogLevel } from '../../common/index.js';
-import { cleanTestResults } from '../../common/test-utils.js';
+import { cleanTestResults } from '../../common/index.js';
 
 export class VaultSaveLoadTest {
   private passwordManager: PasswordManager;
@@ -67,9 +67,7 @@ export class VaultSaveLoadTest {
     
     try {
       // Authenticate
-      const authResult = await this.passwordManager.authenticate({
-        password: this.userProfile.masterPassword
-      });
+      const authResult = await this.passwordManager.authenticate(this.userProfile.masterPassword);
 
       if (!authResult.success) {
         throw new Error(`Authentication failed: ${authResult.error}`);
@@ -287,8 +285,8 @@ export class VaultSaveLoadTest {
     this.logger.info(`=== ${stepName} ===`);
     
     try {
-      // Logout from password manager
-      this.passwordManager.logout();
+      // Lock password manager
+      this.passwordManager.lock();
 
       this.logger.stepComplete(stepName, true, 'Test data cleanup completed');
     } catch (error) {

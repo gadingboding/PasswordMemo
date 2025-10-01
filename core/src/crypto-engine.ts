@@ -5,7 +5,7 @@
  * and padding for the password manager.
  */
 
-import _sodium from 'libsodium-wrappers';
+import _sodium from 'libsodium-wrappers-sumo';
 import {
   BinaryData,
   Base64String,

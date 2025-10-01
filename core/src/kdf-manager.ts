@@ -17,7 +17,7 @@ import {
   KDFParamsBase,
 } from './types/index.js';
 import {CryptographyEngine} from './crypto-engine.js';
-import _sodium from 'libsodium-wrappers';
+import _sodium from 'libsodium-wrappers-sumo';
 
 /**
  * Abstract base class for KDF algorithm implementations

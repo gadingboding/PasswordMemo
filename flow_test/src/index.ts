@@ -23,4 +23,5 @@ export { WebDAVSyncTest } from './tests/webdav-sync-test/test.js';
 export { SimpleWebDAVSyncTest } from './tests/webdav-simple-test/test.js';
 export { VaultSaveLoadTest } from './tests/vault-save-load-test/test.js';
 export { KDFConfigTest } from './tests/kdf-config-test/test.js';
+export { SaltUpdateTest } from './tests/salt-update-test/test.js';
 export { TestRunner } from './run-all-tests.js';

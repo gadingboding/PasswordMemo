@@ -25,11 +25,14 @@ export class DataManager {
   private data: TestData = {};
   private baseDataPath: string;
   private testDataPath: string;
+  private instanceId: string;
 
   constructor(config: DataManagerConfig) {
     this.config = config;
+    this.instanceId = config.testName; // 使用testName作为实例ID
     this.baseDataPath = join('data', 'common');
-    this.testDataPath = join('data', config.testName);
+    // 对于instance-specific的data manager，使用基础测试数据路径
+    this.testDataPath = join('data', config.testName.split('-instance-')[0]);
     this.loadData();
   }
 
@@ -120,8 +123,12 @@ export class DataManager {
    * Get user profile data
    */
   getUserProfile(): any {
-    return this.data.userProfile || {
-      masterPassword: `test-password-${Math.random().toString(36).substring(2, 10)}`
+    const baseProfile = this.data.userProfile;
+    // 为每个实例创建独特的用户配置
+    return {
+      ...baseProfile,
+      // 添加实例特定的标识
+      instanceId: this.instanceId
     };
   }
 
