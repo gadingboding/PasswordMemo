@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Eye, Edit, Trash2, Filter, X, Key } from 'lucide-react'
+import { Search, Eye, Edit, Trash2, X, Key } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Dialog, DialogFooter } from '@/components/ui/Dialog'
 
 export function RecordsPage() {

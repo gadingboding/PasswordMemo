@@ -5,10 +5,8 @@ import {
   FileText,
   Tag,
   Settings,
-  LogOut,
   Lock,
   Plus,
-  User
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
@@ -20,7 +18,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation()
-  const { logout, lock } = useAuthStore()
+  const { lock } = useAuthStore()
 
   const navigation = [
     { name: 'Vault', href: '/records', icon: Key },
@@ -78,18 +76,8 @@ export function Layout({ children }: LayoutProps) {
               variant="ghost"
               size="icon"
               className="text-slate-300 hover:text-white hover:bg-slate-700"
-              onClick={lock}
-            >
+              onClick={lock}>
               <Lock className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-300 hover:text-white hover:bg-slate-700"
-              onClick={logout}
-            >
-              <User className="h-4 w-4" />
             </Button>
           </div>
         </div>

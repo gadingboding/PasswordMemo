@@ -3,7 +3,7 @@
 console.log('Password Manager content script loaded');
 
 // Listen for messages from popup or background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'fillPassword') {
     // Find password input fields
     const passwordInputs = document.querySelectorAll('input[type="password"]');

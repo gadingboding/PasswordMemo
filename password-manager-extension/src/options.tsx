@@ -23,7 +23,7 @@ const App = () => (
     <div className="min-h-screen w-full bg-white">
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={<Layout><div /></Layout>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="records" element={<RecordsPage />} />

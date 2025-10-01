@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Lock, Eye, EyeOff, Key } from 'lucide-react'
+import { Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -34,10 +34,6 @@ export function LockOverlay() {
     }
   }
 
-  const handleUsePIN = () => {
-    // TODO: Implement PIN login
-    console.log('PIN login not implemented yet')
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
@@ -110,15 +106,6 @@ export function LockOverlay() {
                 )}
               </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleUsePIN}
-                className="w-full text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <Key className="h-4 w-4 mr-2" />
-                Use PIN instead
-              </Button>
             </div>
           </form>
         </div>

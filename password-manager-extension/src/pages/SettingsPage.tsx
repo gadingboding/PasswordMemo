@@ -1,26 +1,25 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, Shield, Server } from 'lucide-react'
+import { Save, Server } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { webdavPermissions } from '@/utils/permissions'
 
 export function SettingsPage() {
   const { passwordManager } = useAuthStore()
-  const [pinEnabled, setPinEnabled] = useState(false)
-  const [pinSetup, setPinSetup] = useState({
-    pin: '',
-    confirmPin: '',
-    expiryHours: 24
-  })
   const [webdavConfig, setWebdavConfig] = useState({
     url: '',
     username: '',
     password: ''
   })
-  const [syncStatus, setSyncStatus] = useState<any>(null)
+  const [_syncStatus, setSyncStatus] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [passwordDialog, setPasswordDialog] = useState({
+    open: false,
+    mode: 'push' as 'push' | 'pull'
+  })
 
   useEffect(() => {
     loadSettings()
@@ -30,9 +29,6 @@ export function SettingsPage() {
     if (!passwordManager) return
 
     try {
-      const isPinEnabled = passwordManager.isPINEnabled()
-      setPinEnabled(isPinEnabled)
-      
       const status = passwordManager.getSyncStatus()
       setSyncStatus(status)
       
@@ -50,42 +46,6 @@ export function SettingsPage() {
     }
   }
 
-  const handleSetupPIN = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!passwordManager || pinSetup.pin !== pinSetup.confirmPin) {
-      alert('PIN codes do not match')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await passwordManager.setupPIN(pinSetup.pin, pinSetup.expiryHours)
-      setPinEnabled(true)
-      setPinSetup({ pin: '', confirmPin: '', expiryHours: 24 })
-      alert('PIN setup successful')
-    } catch (error) {
-      console.error('Failed to setup PIN:', error)
-      alert('Failed to setup PIN')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDisablePIN = async () => {
-    if (!passwordManager || !confirm('Are you sure you want to disable PIN?')) return
-
-    setLoading(true)
-    try {
-      await passwordManager.disablePIN()
-      setPinEnabled(false)
-      alert('PIN disabled successfully')
-    } catch (error) {
-      console.error('Failed to disable PIN:', error)
-      alert('Failed to disable PIN')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleConfigureWebDAV = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,133 +78,57 @@ export function SettingsPage() {
   }
 
   const handlePush = async () => {
-    if (!passwordManager) return
-
-    setLoading(true)
-    try {
-      const result = await passwordManager.push()
-      if (result.success) {
-        alert(`Push completed successfully. ${result.recordsPushed} records pushed.`)
-      } else {
-        alert(`Push failed: ${result.error}`)
-      }
-      
-      const status = passwordManager.getSyncStatus()
-      setSyncStatus(status)
-    } catch (error) {
-      console.error('Failed to push:', error)
-      alert('Push failed')
-    } finally {
-      setLoading(false)
-    }
+    setPasswordDialog({ open: true, mode: 'push' })
   }
 
   const handlePull = async () => {
+    setPasswordDialog({ open: true, mode: 'pull' })
+  }
+
+  const handlePasswordSubmit = async (password: string) => {
     if (!passwordManager) return
 
     setLoading(true)
     try {
-      const result = await passwordManager.pull()
-      if (result.success) {
-        if (result.vaultUpdated) {
-          alert(`Pull completed successfully. ${result.recordsPulled} records pulled and vault updated.`)
+      if (passwordDialog.mode === 'push') {
+        const result = await passwordManager.push(password)
+        if (result.success) {
+          alert(`Push completed successfully. ${result.recordsPushed} records pushed.`)
         } else {
-          alert('Pull completed successfully. No changes found.')
+          alert(`Push failed: ${result.error}`)
         }
       } else {
-        alert(`Pull failed: ${result.error}`)
+        const result = await passwordManager.pull(password)
+        if (result.success) {
+          if (result.vaultUpdated) {
+            alert(`Pull completed successfully. ${result.recordsPulled} records pulled and vault updated.`)
+          } else {
+            alert('Pull completed successfully. No changes found.')
+          }
+        } else {
+          alert(`Pull failed: ${result.error}`)
+        }
       }
       
       const status = passwordManager.getSyncStatus()
       setSyncStatus(status)
     } catch (error) {
-      console.error('Failed to pull:', error)
-      alert('Pull failed')
+      console.error(`Failed to ${passwordDialog.mode}:`, error)
+      alert(`${passwordDialog.mode === 'push' ? 'Push' : 'Pull'} failed`)
     } finally {
       setLoading(false)
+      setPasswordDialog({ open: false, mode: 'push' })
+    }
+  }
+
+  const handlePasswordDialogClose = () => {
+    if (!loading) {
+      setPasswordDialog({ open: false, mode: 'push' })
     }
   }
 
   return (
     <div className="space-y-6">
-      {/* PIN Configuration */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="flex items-center text-white">
-            <Shield className="h-5 w-5 mr-2 text-blue-400" />
-            PIN Configuration
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Set up a PIN for quick access to your vault
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pinEnabled ? (
-            <div className="space-y-4">
-              <div className="p-4 bg-green-900/20 border border-green-800 rounded-lg">
-                <p className="text-sm text-green-400">PIN is currently enabled</p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleDisablePIN}
-                disabled={loading}
-                className="border-red-600 text-red-400 hover:bg-red-900/20"
-              >
-                Disable PIN
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSetupPIN} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">PIN</label>
-                  <Input
-                    type="password"
-                    placeholder="Enter PIN"
-                    value={pinSetup.pin}
-                    onChange={(e) => setPinSetup({ ...pinSetup, pin: e.target.value })}
-                    maxLength={6}
-                    required
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">Confirm PIN</label>
-                  <Input
-                    type="password"
-                    placeholder="Confirm PIN"
-                    value={pinSetup.confirmPin}
-                    onChange={(e) => setPinSetup({ ...pinSetup, confirmPin: e.target.value })}
-                    maxLength={6}
-                    required
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">Expiry Hours</label>
-                <Input
-                  type="number"
-                  value={pinSetup.expiryHours}
-                  onChange={(e) => setPinSetup({ ...pinSetup, expiryHours: parseInt(e.target.value) })}
-                  min={1}
-                  max={168}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Setup PIN
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-
       {/* WebDAV Configuration */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
@@ -352,6 +236,21 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Password Dialog */}
+      <PasswordDialog
+        open={passwordDialog.open}
+        onClose={handlePasswordDialogClose}
+        onSubmit={handlePasswordSubmit}
+        title={passwordDialog.mode === 'push' ? 'Push to Remote' : 'Pull from Remote'}
+        description={
+          passwordDialog.mode === 'push'
+            ? 'Enter your master password to encrypt and push your local changes to the remote server.'
+            : 'Enter your master password to decrypt and pull changes from the remote server.'
+        }
+        submitText={passwordDialog.mode === 'push' ? 'Push' : 'Pull'}
+        loading={loading}
+      />
     </div>
   )
 }
