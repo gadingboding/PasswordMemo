@@ -9,9 +9,6 @@ import {
   KDFAlgorithm,
   KDFValidationResult,
   KDFUpdateResult,
-  PBKDF2Params,
-  KDF_ALGORITHMS,
-  DEFAULT_KDF_CONFIG
 } from './types/index.js';
 import {KDFManager} from './kdf-manager.js';
 import {VaultManager} from './vault-manager.js';

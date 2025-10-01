@@ -9,13 +9,13 @@ import {Base64String, BinaryData} from './crypto.js';
 /**
  * Supported KDF algorithms
  */
-export type KDFAlgorithm = 'pbkdf2'; // Currently only PBKDF2 is supported, but architecture allows for future expansion
+export type KDFAlgorithm = 'argon2id';
 
 /**
  * Supported KDF algorithm constants
  */
 export const KDF_ALGORITHMS = {
-  PBKDF2: 'pbkdf2' as const,
+  ARGON2ID: 'argon2id' as const,
 } as const;
 
 /**
@@ -37,14 +37,15 @@ export interface KDFParamsBase {
   keyLength: number;
 }
 
+
 /**
- * PBKDF2 algorithm parameters
+ * Argon2id algorithm parameters
  */
-export interface PBKDF2Params extends KDFParamsBase {
-  /** Number of iterations */
-  iterations: number;
-  /** Hash algorithm (e.g., 'sha256') */
-  hash: string;
+export interface Argon2idParams extends KDFParamsBase {
+  /** Memory limit in bytes */
+  memlimit?: number;
+  /** Number of operations */
+  opslimit?: number;
 }
 
 /**
@@ -54,20 +55,20 @@ export interface KDFConfig {
   /** KDF algorithm */
   algorithm: KDFAlgorithm;
   /** Algorithm-specific parameters */
-  params: KDFParamsBase; // Base type that supports all algorithms, currently only PBKDF2Params is used
+  params: KDFParamsBase;
 }
 
 /**
  * Default KDF configuration
  */
 export const DEFAULT_KDF_CONFIG: KDFConfig = {
-  algorithm: KDF_ALGORITHMS.PBKDF2,
+  algorithm: KDF_ALGORITHMS.ARGON2ID,
   params: {
     salt: '',
-    iterations: 600000,
-    hash: 'sha256',
+    memlimit: 67108864,
+    opslimit: 3,
     keyLength: 32
-  } as PBKDF2Params
+  } as Argon2idParams
 } as const;
 
 /**
@@ -94,9 +95,9 @@ export interface KDFUpdateResult {
  * Default KDF parameters
  */
 export const DEFAULT_KDF_PARAMS = {
-  pbkdf2: {
-    iterations: 600000,
-    hash: 'sha256',
+  argon2id: {
+    memlimit: 67108864, // 64 MiB
+    opslimit: 3,
     keyLength: 32       // 256 bits
   }
 } as const;
@@ -105,9 +106,9 @@ export const DEFAULT_KDF_PARAMS = {
  * KDF parameter validation rules
  */
 export const KDF_VALIDATION_RULES = {
-  pbkdf2: {
-    iterations: {min: 10000, max: 10000000}, // 10K to 10M
-    hash: {allowed: ['sha256', 'sha512']},
-    keyLength: {min: 16, max: 64}            // 128 to 512 bits
+  argon2id: {
+    opslimit: {min: 1, max: 10},              // 1 to 10 operations
+    memlimit: {min: 8388608, max: 536870912}, // 8 MiB to 512 MiB
+    keyLength: {min: 16, max: 64}             // 128 to 512 bits
   }
 } as const;

@@ -7,7 +7,7 @@
 import {
   KDFConfig,
   KDFAlgorithm,
-  PBKDF2Params,
+  Argon2idParams,
   KDFValidationResult,
   Base64String,
   DEFAULT_KDF_PARAMS,
@@ -17,6 +17,7 @@ import {
   KDFParamsBase,
 } from './types/index.js';
 import {CryptographyEngine} from './crypto-engine.js';
+import _sodium from 'libsodium-wrappers';
 
 /**
  * Abstract base class for KDF algorithm implementations
@@ -38,95 +39,60 @@ abstract class KDFAlgorithmStrategy {
   abstract areParamsCompatible(params1: KDFParamsBase, params2: KDFParamsBase): boolean;
 }
 
+
 /**
- * PBKDF2 algorithm implementation
+ * Argon2id algorithm implementation using libsodium
  */
-class PBKDF2Strategy extends KDFAlgorithmStrategy {
+class Argon2idStrategy extends KDFAlgorithmStrategy {
   validateParams(params: KDFParamsBase, errors: string[]): void {
-    const pbkdf2Params = params as PBKDF2Params;
-    const rules = KDF_VALIDATION_RULES.pbkdf2;
+    const argon2Params = params as Argon2idParams;
 
-    if (!pbkdf2Params.salt) {
-      errors.push('Salt is required for PBKDF2');
+    if (argon2Params.opslimit !== undefined) {
+      const rules = KDF_VALIDATION_RULES.argon2id;
+      if (argon2Params.opslimit < rules.opslimit.min ||
+        argon2Params.opslimit > rules.opslimit.max) {
+        errors.push(`Ops limit must be between ${rules.opslimit.min} and ${rules.opslimit.max}`);
+      }
     }
 
-    if (typeof pbkdf2Params.iterations !== 'number' ||
-      pbkdf2Params.iterations < rules.iterations.min ||
-      pbkdf2Params.iterations > rules.iterations.max) {
-      errors.push(`Iterations must be between ${rules.iterations.min} and ${rules.iterations.max}`);
-    }
-
-    if (!rules.hash.allowed.includes(pbkdf2Params.hash as 'sha256' | 'sha512')) {
-      errors.push(`Hash algorithm must be one of: ${rules.hash.allowed.join(', ')}`);
-    }
-
-    if (typeof pbkdf2Params.keyLength !== 'number' ||
-      pbkdf2Params.keyLength < rules.keyLength.min ||
-      pbkdf2Params.keyLength > rules.keyLength.max) {
-      errors.push(`Key length must be between ${rules.keyLength.min} and ${rules.keyLength.max} bytes`);
+    if (argon2Params.memlimit !== undefined) {
+      const rules = KDF_VALIDATION_RULES.argon2id;
+      if (argon2Params.memlimit < rules.memlimit.min ||
+        argon2Params.memlimit > rules.memlimit.max) {
+        errors.push(`Memory limit must be between ${rules.memlimit.min / 1024 / 1024} MiB and ${rules.memlimit.max / 1024 / 1024} MiB`);
+      }
     }
   }
 
   async deriveKey(password: string, params: KDFParamsBase): Promise<DerivedKey> {
-    const pbkdf2Params = params as PBKDF2Params;
-    
-    // Use Web Crypto API for key derivation
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      // Browser environment
-      const encoder = new TextEncoder();
-      const passwordBytes = encoder.encode(password);
-      const saltBytes = CryptographyEngine.base64ToBytes(pbkdf2Params.salt);
+    await _sodium.ready; // 确保 libsodium 已初始化
 
-      // Import password as a key
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        passwordBytes,
-        {name: 'PBKDF2'},
-        false,
-        ['deriveBits']
-      );
+    const argon2Params = params as Argon2idParams;
 
-      // Derive key using PBKDF2
-      const derivedBits = await crypto.subtle.deriveBits(
-        {
-          name: 'PBKDF2',
-          salt: new Uint8Array(saltBytes),
-          iterations: pbkdf2Params.iterations,
-          hash: pbkdf2Params.hash.toUpperCase()
-        },
-        keyMaterial,
-        pbkdf2Params.keyLength * 8 // Convert to bits
-      );
+    // Convert salt to bytes
+    const saltBytes = await CryptographyEngine.base64ToBytes(argon2Params.salt);
 
-      return {
-        key: new Uint8Array(derivedBits),
-      };
-    } else {
-      // Node.js environment
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const crypto = require('crypto');
-      const saltBytes = CryptographyEngine.base64ToBytes(pbkdf2Params.salt);
+    // Use libsodium's Argon2id for key derivation
+    const derivedKey = _sodium.crypto_pwhash(
+      argon2Params.keyLength, // output length
+      password, // password (string, libsodium handles encoding)
+      saltBytes, // salt
+      argon2Params.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit,
+      argon2Params.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit,
+      _sodium.crypto_pwhash_ALG_ARGON2ID13 // algorithm
+    );
 
-      const derivedKey = crypto.pbkdf2Sync(
-        password,
-        Buffer.from(saltBytes),
-        pbkdf2Params.iterations,
-        pbkdf2Params.keyLength,
-        pbkdf2Params.hash
-      );
-
-      return {
-        key: new Uint8Array(derivedKey),
-      };
-    }
+    return {
+      key: derivedKey,
+    };
   }
 
   areParamsCompatible(params1: KDFParamsBase, params2: KDFParamsBase): boolean {
-    const pbkdf1 = params1 as PBKDF2Params;
-    const pbkdf2 = params2 as PBKDF2Params;
-    return pbkdf1.iterations === pbkdf2.iterations &&
-      pbkdf1.hash === pbkdf2.hash &&
-      pbkdf1.keyLength === pbkdf2.keyLength;
+    const argon1 = params1 as Argon2idParams;
+    const argon2 = params2 as Argon2idParams;
+    return (argon1.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit) === (argon2.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit) &&
+      (argon1.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit) === (argon2.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit) &&
+      argon1.keyLength === argon2.keyLength;
   }
 }
 
@@ -138,7 +104,7 @@ export class KDFManager {
 
   constructor() {
     this.algorithmStrategies = new Map();
-    this.registerAlgorithm(KDF_ALGORITHMS.PBKDF2, new PBKDF2Strategy());
+    this.registerAlgorithm(KDF_ALGORITHMS.ARGON2ID, new Argon2idStrategy());
   }
 
   /**
@@ -199,13 +165,13 @@ export class KDFManager {
     const salt = await this.generateSalt();
 
     switch (algorithm) {
-      case 'pbkdf2':
+      case 'argon2id':
         return {
-          algorithm: 'pbkdf2',
+          algorithm: 'argon2id',
           params: {
             salt,
-            ...DEFAULT_KDF_PARAMS.pbkdf2
-          } as PBKDF2Params
+            ...DEFAULT_KDF_PARAMS.argon2id
+          } as Argon2idParams
         };
       default:
         throw new Error(`Unsupported algorithm: ${algorithm}`);

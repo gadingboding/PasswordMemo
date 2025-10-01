@@ -35,70 +35,25 @@ export class CryptographyEngine {
   /**
    * Generate cryptographically secure random bytes
    */
-  static randomBytes(length: number): BinaryData {
-    if (!sodiumReady) {
-      // Auto-initialize if not ready
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      ensureSodiumReady();
-      throw new Error('Sodium not initialized. Call ensureSodiumReady() first.');
-    }
-
-    // Use Web Crypto API in browser or Node.js crypto module
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      // Browser environment
-      const array = new Uint8Array(length);
-      crypto.getRandomValues(array);
-      return array;
-    } else {
-      // Node.js environment - use require for crypto
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const crypto = require('crypto');
-        return new Uint8Array(crypto.randomBytes(length));
-      } catch (error) {
-        throw new Error('No secure random number generator available');
-      }
-    }
+  static async randomBytes(length: number): Promise<BinaryData> {
+    await ensureSodiumReady();
+    return _sodium.randombytes_buf(length);
   }
 
   /**
-   * Convert Base64 string to Uint8Array
+   * Convert Base64 string to Uint8Array using libsodium
    */
-  static base64ToBytes(base64: Base64String): Uint8Array {
-    if (typeof atob !== 'undefined') {
-      // Browser environment
-      const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      return bytes;
-    } else {
-      // Node.js environment
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      return new Uint8Array(Buffer.from(base64, 'base64'));
-    }
+  static async base64ToBytes(base64: Base64String): Promise<Uint8Array> {
+    await ensureSodiumReady();
+    return _sodium.from_base64(base64, _sodium.base64_variants.ORIGINAL);
   }
 
   /**
-   * Convert Uint8Array to Base64 string
+   * Convert Uint8Array to Base64 string using libsodium
    */
-  static bytesToBase64(bytes: Uint8Array): Base64String {
-    if (typeof btoa !== 'undefined') {
-      // Browser environment
-      let binaryString = '';
-      for (let i = 0; i < bytes.length; i++) {
-        const byte = bytes[i];
-        if (byte !== undefined) {
-          binaryString += String.fromCharCode(byte);
-        }
-      }
-      return btoa(binaryString);
-    } else {
-      // Node.js environment
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      return Buffer.from(bytes).toString('base64');
-    }
+  static async bytesToBase64(bytes: Uint8Array): Promise<Base64String> {
+    await ensureSodiumReady();
+    return _sodium.to_base64(bytes, _sodium.base64_variants.ORIGINAL);
   }
 
   /**
@@ -122,7 +77,7 @@ export class CryptographyEngine {
    */
   static async generateSalt(): Promise<Base64String> {
     await ensureSodiumReady();
-    const salt = this.randomBytes(16); // 16 bytes = 128 bits salt for PBKDF2
+    const salt = await this.randomBytes(16); // 16 bytes = 128 bits salt
     return this.bytesToBase64(salt);
   }
 
@@ -159,7 +114,7 @@ export class CryptographyEngine {
 
     // Generate clean padding data without 0x80 bytes
     const paddingLength = bucketSize - requiredLength;
-    const cleanPadding = this.generateCleanPadding(paddingLength);
+    const cleanPadding = await this.generateCleanPadding(paddingLength);
     paddedData.set(cleanPadding, requiredLength);
 
     return {
@@ -216,8 +171,8 @@ export class CryptographyEngine {
     );
 
     return {
-      ciphertext: this.bytesToBase64(new Uint8Array(encrypted)),
-      nonce: this.bytesToBase64(new Uint8Array(nonce)),
+      ciphertext: await this.bytesToBase64(new Uint8Array(encrypted)),
+      nonce: await this.bytesToBase64(new Uint8Array(nonce)),
       algorithm: CHACHA20_POLY1305_IETF,
     };
   }
@@ -232,8 +187,8 @@ export class CryptographyEngine {
       throw new Error(`Unsupported algorithm: ${encryptedData.algorithm}`);
     }
 
-    const ciphertext = this.base64ToBytes(encryptedData.ciphertext);
-    const nonce = this.base64ToBytes(encryptedData.nonce);
+    const ciphertext = await this.base64ToBytes(encryptedData.ciphertext);
+    const nonce = await this.base64ToBytes(encryptedData.nonce);
 
     try {
       // Use libsodium for decryption
@@ -263,14 +218,14 @@ export class CryptographyEngine {
   /**
    * Generate clean padding data without 0x80 bytes to avoid delimiter conflicts
    */
-  static generateCleanPadding(targetLength: number): Uint8Array {
+  static async generateCleanPadding(targetLength: number): Promise<Uint8Array> {
     let multiplier = 2;
     let attempts = 0;
     const maxAttempts = 3; // Try 2x, 4x, then use byte-by-byte fallback
 
     while (attempts < maxAttempts) {
       const generateLength = targetLength * multiplier;
-      const rawPadding = this.randomBytes(generateLength);
+      const rawPadding = await this.randomBytes(generateLength);
       const cleanPadding = rawPadding.filter(byte => byte !== 0x80);
 
       if (cleanPadding.length >= targetLength) {
@@ -285,7 +240,7 @@ export class CryptographyEngine {
     const result = new Uint8Array(targetLength);
     let i = 0;
     while (i < targetLength) {
-      const byte = this.randomBytes(1)[0];
+      const byte = (await this.randomBytes(1))[0];
       if (byte !== 0x80) {
         result[i] = byte!;
         i++;
