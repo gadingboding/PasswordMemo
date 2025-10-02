@@ -22,6 +22,9 @@
     "labels": "Labels",
     "settings": "Settings"
   },
+  "layout": {
+    "openFloatingWindow": "Open floating window"
+  },
   "auth": {
     "login": "Login",
     "logout": "Logout",

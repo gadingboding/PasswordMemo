@@ -22,6 +22,9 @@
     "labels": "标签",
     "settings": "设置"
   },
+  "layout": {
+    "openFloatingWindow": "打开浮动窗口"
+  },
   "auth": {
     "login": "登录",
     "logout": "退出",

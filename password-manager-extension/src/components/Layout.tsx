@@ -8,6 +8,7 @@ import {
   Settings,
   Lock,
   Plus,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
@@ -21,6 +22,20 @@ export function Layout({ children }: LayoutProps) {
   const { t, ready } = useTranslation()
   const location = useLocation()
   const { lock } = useAuthStore()
+
+  const handleFloatingWindowClick = async () => {
+    try {
+      await chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type: 'popup',
+        width: 400,
+        height: 600,
+        focused: true
+      })
+    } catch (error) {
+      console.error('Failed to create floating window:', error)
+    }
+  }
 
   const navigation = [
     { name: ready ? t('navigation.records') : 'Records', href: '/records', icon: Key },
@@ -74,6 +89,15 @@ export function Layout({ children }: LayoutProps) {
           )}
           
           <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-slate-300 hover:text-white hover:bg-slate-700"
+              onClick={handleFloatingWindowClick}
+              title={t('layout.openFloatingWindow', 'Open floating window')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
