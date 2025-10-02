@@ -1,6 +1,5 @@
 import React from 'react'
 import { X } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { Button } from './Button'
 
 interface DialogProps {
@@ -11,7 +10,6 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onClose, title, children }: DialogProps) {
-  const { t } = useTranslation()
   if (!open) return null
 
   return (
