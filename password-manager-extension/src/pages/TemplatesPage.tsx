@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileText, Edit, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
 export function TemplatesPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
   const [templates, setTemplates] = useState<any[]>([])
@@ -29,7 +31,7 @@ export function TemplatesPage() {
   }
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!passwordManager || !confirm('Are you sure you want to delete this template?')) return
+    if (!passwordManager || !confirm(t('dialogs.confirmDeleteTemplate'))) return
 
     try {
       await passwordManager.deleteTemplate(templateId)
@@ -37,7 +39,7 @@ export function TemplatesPage() {
     } catch (error) {
       console.error('Failed to delete template:', error)
       // Template deletion might not be implemented yet
-      alert('Template deletion is not yet supported')
+      alert(t('templateForm.templateDeletionNotSupported'))
     }
   }
 
@@ -46,7 +48,7 @@ export function TemplatesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading templates...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('templates.loadingTemplates')}</p>
         </div>
       </div>
     )
@@ -55,7 +57,7 @@ export function TemplatesPage() {
   return (
     <div className="space-y-4">
       <div className="text-sm text-slate-400">
-        Templates define the structure for your password records. Create custom templates to match your needs.
+        {t('templates.description')}
       </div>
 
       {templates.length === 0 ? (
@@ -63,15 +65,15 @@ export function TemplatesPage() {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No templates yet</h3>
+              <h3 className="text-lg font-medium text-white mb-2">{t('templates.noTemplatesYet')}</h3>
               <p className="text-slate-400 mb-4">
-                Start by creating your first custom template
+                {t('templates.noTemplatesYetDesc')}
               </p>
               <Button 
                 onClick={() => navigate('/templates/create')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Create Template
+                {t('templates.createTemplate')}
               </Button>
             </div>
           </CardContent>
@@ -88,7 +90,7 @@ export function TemplatesPage() {
                       <span className="truncate">{template.name}</span>
                     </CardTitle>
                     <CardDescription className="text-slate-400">
-                      {template.fieldCount} field{template.fieldCount !== 1 ? 's' : ''}
+                      {t(`templates.fieldCount${template.fieldCount !== 1 ? '_plural' : ''}`, { count: template.fieldCount })}
                     </CardDescription>
                   </div>
                   <div className="flex space-x-1 ml-3">

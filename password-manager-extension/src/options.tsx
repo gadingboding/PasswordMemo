@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
+import './i18n'; // Import i18n configuration
+import { initializeI18n } from './i18n';
 
 // Import components and pages from the copied web app
 import { Layout } from '@/components/Layout';
@@ -43,4 +45,9 @@ const App = () => (
   </Router>
 );
 
-createRoot(document.getElementById('root')!).render(<App />);
+async function initializeApp() {
+  await initializeI18n // Wait for i18n to initialize
+  createRoot(document.getElementById('root')!).render(<App />);
+}
+
+initializeApp().catch(console.error);

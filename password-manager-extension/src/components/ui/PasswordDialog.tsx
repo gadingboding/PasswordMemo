@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogFooter } from './Dialog'
 import { Button } from './Button'
 import { Input } from './Input'
@@ -23,6 +24,7 @@ export function PasswordDialog({
   submitText,
   loading = false
 }: PasswordDialogProps) {
+  const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
@@ -57,7 +59,7 @@ export function PasswordDialog({
           
           <div className="space-y-2">
             <label htmlFor="password" className="block text-sm font-medium text-slate-200">
-              Master Password
+              {t('auth.masterPassword')}
             </label>
             <div className="relative">
               <Input
@@ -65,7 +67,7 @@ export function PasswordDialog({
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your master password"
+                placeholder={t('auth.enterPassword')}
                 className="pr-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 disabled={loading}
                 autoFocus
@@ -97,7 +99,7 @@ export function PasswordDialog({
             disabled={loading}
             className="border-slate-600 text-slate-300 hover:bg-slate-700"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -107,7 +109,7 @@ export function PasswordDialog({
             {loading ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Processing...
+                {t('login.processing')}
               </div>
             ) : (
               <div className="flex items-center">

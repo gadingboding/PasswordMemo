@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tag, Edit, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 
 export function LabelsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
   const [labels, setLabels] = useState<any[]>([])
@@ -29,7 +31,7 @@ export function LabelsPage() {
   }
 
   const handleDeleteLabel = async (labelId: string) => {
-    if (!passwordManager || !confirm('Are you sure you want to delete this label?')) return
+    if (!passwordManager || !confirm(t('dialogs.confirmDeleteLabel'))) return
 
     try {
       await passwordManager.deleteLabel(labelId)
@@ -44,7 +46,7 @@ export function LabelsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading labels...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('labels.loadingLabels')}</p>
         </div>
       </div>
     )
@@ -53,7 +55,7 @@ export function LabelsPage() {
   return (
     <div className="space-y-4">
       <div className="text-sm text-slate-400">
-        Organize your records with custom labels. Labels help you categorize and quickly find related items.
+        {t('labels.description')}
       </div>
 
       {labels.length === 0 ? (
@@ -61,15 +63,15 @@ export function LabelsPage() {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Tag className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No labels yet</h3>
+              <h3 className="text-lg font-medium text-white mb-2">{t('labels.noLabelsYet')}</h3>
               <p className="text-slate-400 mb-4">
-                Start by creating your first label to organize your records
+                {t('labels.noLabelsYetDesc')}
               </p>
               <Button 
                 onClick={() => navigate('/labels/create')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Create Label
+                {t('labels.createLabel')}
               </Button>
             </div>
           </CardContent>

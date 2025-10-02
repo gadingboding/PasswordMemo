@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Plus, X, Save } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -17,18 +18,20 @@ interface TemplateFormData {
   fields: ExtendedTemplateField[]
 }
 
-const FIELD_TYPES = [
-  { value: 'text', label: 'Text' },
-  { value: 'password', label: 'Password' },
-  { value: 'email', label: 'Email' },
-  { value: 'url', label: 'URL' },
-  { value: 'textarea', label: 'Textarea' }
+const getFieldTypes = (t: any) => [
+  { value: 'text', label: t('fieldTypes.text') },
+  { value: 'password', label: t('fieldTypes.password') },
+  { value: 'email', label: t('fieldTypes.email') },
+  { value: 'url', label: t('fieldTypes.url') },
+  { value: 'textarea', label: t('fieldTypes.textarea') }
 ]
 
 export function EditTemplatePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { passwordManager } = useAuthStore()
+  const FIELD_TYPES = getFieldTypes(t)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [template, setTemplate] = useState<any>(null)
@@ -87,7 +90,7 @@ export function EditTemplatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.name.trim() || formData.fields.some(f => !f.name.trim()) || !id) {
-      alert('Please fill in all required fields')
+      alert(t('templateForm.pleaseFillRequiredFields'))
       return
     }
 
@@ -107,7 +110,7 @@ export function EditTemplatePage() {
       navigate('/templates')
     } catch (error) {
       console.error('Failed to update template:', error)
-      alert('Failed to update template')
+      alert(t('templateForm.failedToUpdateTemplate'))
     } finally {
       setLoading(false)
     }
@@ -118,7 +121,7 @@ export function EditTemplatePage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading template...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('templateForm.loadingTemplate')}</p>
         </div>
       </div>
     )
@@ -127,11 +130,11 @@ export function EditTemplatePage() {
   if (!template) {
     return (
       <div className="text-center py-8">
-        <h3 className="text-lg font-medium text-white mb-2">Template not found</h3>
-        <p className="text-slate-400 mb-4">The template you're looking for doesn't exist.</p>
+        <h3 className="text-lg font-medium text-white mb-2">{t('templateForm.templateNotFound')}</h3>
+        <p className="text-slate-400 mb-4">{t('templateForm.templateNotFoundDesc')}</p>
         <Button onClick={() => navigate('/templates')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Templates
+          {t('templateForm.backToTemplates')}
         </Button>
       </div>
     )
@@ -148,29 +151,29 @@ export function EditTemplatePage() {
           className="text-slate-400 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('templateForm.back')}
         </Button>
-        <h1 className="text-xl font-semibold text-white">Edit Template</h1>
+        <h1 className="text-xl font-semibold text-white">{t('templateForm.editTemplate')}</h1>
         <div className="w-16" /> {/* Spacer for centering */}
       </div>
 
       {/* Form Card */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Template Details</CardTitle>
+          <CardTitle className="text-white">{t('templateForm.templateDetails')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-slate-200 mb-2">
-                Template Name *
+                {t('templateForm.templateName')} *
               </label>
               <Input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter template name"
+                placeholder={t('templateForm.templateNamePlaceholder')}
                 required
                 className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
@@ -179,7 +182,7 @@ export function EditTemplatePage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-slate-200">
-                  Fields *
+                  {t('templateForm.fields')} *
                 </label>
                 <Button 
                   type="button" 
@@ -188,7 +191,7 @@ export function EditTemplatePage() {
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add Field
+                  {t('templateForm.addField')}
                 </Button>
               </div>
 
@@ -196,7 +199,7 @@ export function EditTemplatePage() {
                 {formData.fields.map((field, index) => (
                   <div key={field.id} className="bg-slate-700/50 border border-slate-600 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <span className="text-sm font-medium text-slate-300">Field {index + 1}</span>
+                      <span className="text-sm font-medium text-slate-300">{t('templateForm.field', { number: index + 1 })}</span>
                       {formData.fields.length > 1 && (
                         <Button
                           type="button"
@@ -213,13 +216,13 @@ export function EditTemplatePage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-medium text-slate-300 mb-1">
-                          Field Name *
+                          {t('templateForm.fieldName')} *
                         </label>
                         <Input
                           type="text"
                           value={field.name}
                           onChange={(e) => handleFieldChange(index, { name: e.target.value })}
-                          placeholder="Enter field name"
+                          placeholder={t('templateForm.fieldNamePlaceholder')}
                           required
                           className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                         />
@@ -228,7 +231,7 @@ export function EditTemplatePage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-slate-300 mb-1">
-                            Field Type
+                            {t('templateForm.fieldType')}
                           </label>
                           <Select
                             value={field.type}
@@ -246,7 +249,7 @@ export function EditTemplatePage() {
                               onChange={(e) => handleFieldChange(index, { optional: !e.target.checked })}
                               className="rounded border-slate-600 bg-slate-700"
                             />
-                            Required Field
+                            {t('templateForm.requiredField')}
                           </label>
                         </div>
                       </div>
@@ -263,7 +266,7 @@ export function EditTemplatePage() {
                 onClick={() => navigate('/templates')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -271,7 +274,7 @@ export function EditTemplatePage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Updating...' : 'Update Template'}
+                {loading ? t('templateForm.updating') : t('templateForm.editTemplate')}
               </Button>
             </div>
           </form>

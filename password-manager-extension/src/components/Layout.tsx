@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Key,
@@ -17,19 +18,20 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const { t, ready } = useTranslation()
   const location = useLocation()
   const { lock } = useAuthStore()
 
   const navigation = [
-    { name: 'Vault', href: '/records', icon: Key },
-    { name: 'Templates', href: '/templates', icon: FileText },
-    { name: 'Labels', href: '/labels', icon: Tag },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: ready ? t('navigation.records') : 'Records', href: '/records', icon: Key },
+    { name: ready ? t('navigation.templates') : 'Templates', href: '/templates', icon: FileText },
+    { name: ready ? t('navigation.labels') : 'Labels', href: '/labels', icon: Tag },
+    { name: ready ? t('navigation.settings') : 'Settings', href: '/settings', icon: Settings },
   ]
 
   const getCurrentPageName = () => {
     const currentNav = navigation.find(nav => nav.href === location.pathname)
-    return currentNav?.name || 'Vault'
+    return currentNav?.name || (ready ? t('navigation.records') : 'Records')
   }
 
   const showCreateButton = () => {
@@ -66,7 +68,7 @@ export function Layout({ children }: LayoutProps) {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                New
+                {ready ? t('common.create') : 'Create'}
               </Button>
             </NavLink>
           )}

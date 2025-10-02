@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Eye, Edit, Trash2, X, Key } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -8,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Dialog, DialogFooter } from '@/components/ui/Dialog'
 
 export function RecordsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
   const [records, setRecords] = useState<any[]>([])
@@ -60,7 +62,7 @@ export function RecordsPage() {
   })
 
   const handleDeleteRecord = async (recordId: string) => {
-    if (!passwordManager || !confirm('Are you sure you want to delete this record?')) return
+    if (!passwordManager || !confirm(t('dialogs.confirmDeleteRecord'))) return
 
     try {
       await passwordManager.deleteRecord(recordId)
@@ -98,7 +100,7 @@ export function RecordsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading records...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -111,7 +113,7 @@ export function RecordsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Search records..."
+            placeholder={t('records.searchRecords')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-slate-800 border-slate-600 text-white placeholder-slate-400"
@@ -122,7 +124,7 @@ export function RecordsPage() {
         {labels.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-300">Filter by labels:</span>
+              <span className="text-sm font-medium text-slate-300">{t('common.filter')} {t('labels.title').toLowerCase()}:</span>
               {selectedLabelIds.length > 0 && (
                 <Button
                   variant="ghost"
@@ -130,7 +132,7 @@ export function RecordsPage() {
                   onClick={() => setSelectedLabelIds([])}
                   className="h-auto p-1 text-xs text-slate-400 hover:text-white"
                 >
-                  Clear filters
+                  {t('common.reset')}
                 </Button>
               )}
             </div>
@@ -171,9 +173,9 @@ export function RecordsPage() {
           <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3 border border-slate-700">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-slate-300">
-                {filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''} found
-                {searchQuery && ` for "${searchQuery}"`}
-                {selectedLabelIds.length > 0 && ` with ${selectedLabelIds.length} label${selectedLabelIds.length !== 1 ? 's' : ''}`}
+                {filteredRecords.length} {t('records.title').toLowerCase()}{filteredRecords.length !== 1 ? 's' : ''} {t('common.search').toLowerCase()}
+                {searchQuery && ` ${t('common.filter').toLowerCase()} "${searchQuery}"`}
+                {selectedLabelIds.length > 0 && ` ${t('common.filter').toLowerCase()} ${selectedLabelIds.length} ${t('labels.title').toLowerCase()}${selectedLabelIds.length !== 1 ? 's' : ''}`}
               </span>
             </div>
             <Button
@@ -186,7 +188,7 @@ export function RecordsPage() {
               className="h-auto p-1 text-slate-400 hover:text-white"
             >
               <X className="h-4 w-4 mr-1" />
-              Clear all
+              {t('common.reset')} {t('common.all').toLowerCase()}
             </Button>
           </div>
         )}
@@ -198,19 +200,19 @@ export function RecordsPage() {
             <div className="text-center py-8">
               <Key className="h-12 w-12 text-slate-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-white mb-2">
-                {searchQuery ? 'No records found' : 'No records yet'}
+                {searchQuery ? t('records.noRecords') : t('dashboard.noRecordsYet')}
               </h3>
               <p className="text-slate-400 mb-4">
                 {searchQuery
-                  ? 'Try adjusting your search query'
-                  : 'Start by creating your first password record'}
+                  ? t('records.searchRecords')
+                  : t('dashboard.noRecordsYetDesc')}
               </p>
               {!searchQuery && (
                 <Button 
                   onClick={() => navigate('/records/create')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  Create Record
+                  {t('records.createRecord')}
                 </Button>
               )}
             </div>
@@ -283,7 +285,7 @@ export function RecordsPage() {
       <Dialog
         open={showViewDialog}
         onClose={() => setShowViewDialog(false)}
-        title="View Record"
+        title={t('dialogs.viewRecord')}
       >
         {viewingRecord && (
           <div className="space-y-4">
@@ -368,7 +370,7 @@ export function RecordsPage() {
                 onClick={() => setShowViewDialog(false)}
                 className="bg-slate-700 hover:bg-slate-600 text-white"
               >
-                Close
+                {t('dialogs.close')}
               </Button>
             </DialogFooter>
           </div>

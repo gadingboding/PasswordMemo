@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -19,6 +20,7 @@ const PRESET_COLORS = [
 ]
 
 export function EditLabelPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { passwordManager } = useAuthStore()
@@ -61,7 +63,7 @@ export function EditLabelPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.name.trim() || !id) {
-      alert('Please enter a label name')
+      alert(t('labelForm.pleaseEnterLabelName'))
       return
     }
 
@@ -74,7 +76,7 @@ export function EditLabelPage() {
       navigate('/labels')
     } catch (error) {
       console.error('Failed to update label:', error)
-      alert('Failed to update label')
+      alert(t('labelForm.failedToUpdateLabel'))
     } finally {
       setLoading(false)
     }
@@ -85,7 +87,7 @@ export function EditLabelPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading label...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('labelForm.loadingLabel')}</p>
         </div>
       </div>
     )
@@ -94,11 +96,11 @@ export function EditLabelPage() {
   if (!label) {
     return (
       <div className="text-center py-8">
-        <h3 className="text-lg font-medium text-white mb-2">Label not found</h3>
-        <p className="text-slate-400 mb-4">The label you're looking for doesn't exist.</p>
+        <h3 className="text-lg font-medium text-white mb-2">{t('labelForm.labelNotFound')}</h3>
+        <p className="text-slate-400 mb-4">{t('labelForm.labelNotFoundDesc')}</p>
         <Button onClick={() => navigate('/labels')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Labels
+          {t('labelForm.backToLabels')}
         </Button>
       </div>
     )
@@ -115,29 +117,29 @@ export function EditLabelPage() {
           className="text-slate-400 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('labelForm.back')}
         </Button>
-        <h1 className="text-xl font-semibold text-white">Edit Label</h1>
+        <h1 className="text-xl font-semibold text-white">{t('labelForm.editLabel')}</h1>
         <div className="w-16" /> {/* Spacer for centering */}
       </div>
 
       {/* Form Card */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Label Details</CardTitle>
+          <CardTitle className="text-white">{t('labelForm.labelDetails')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-slate-200 mb-2">
-                Label Name *
+                {t('labelForm.labelName')} *
               </label>
               <Input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter label name"
+                placeholder={t('labelForm.labelNamePlaceholder')}
                 required
                 className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
@@ -145,7 +147,7 @@ export function EditLabelPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-200 mb-3">
-                Color
+                {t('labelForm.color')}
               </label>
               <div className="grid grid-cols-8 gap-3">
                 {PRESET_COLORS.map((color) => (
@@ -165,7 +167,7 @@ export function EditLabelPage() {
               
               {/* Preview */}
               <div className="mt-4 p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
-                <div className="text-xs text-slate-300 mb-1">Preview:</div>
+                <div className="text-xs text-slate-300 mb-1">{t('labelForm.preview')}</div>
                 <span
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                   style={{ 
@@ -178,7 +180,7 @@ export function EditLabelPage() {
                     className="w-2 h-2 rounded-full mr-2"
                     style={{ backgroundColor: formData.color }}
                   />
-                  {formData.name || 'Label name'}
+                  {formData.name || t('labelForm.labelNamePreview')}
                 </span>
               </div>
             </div>
@@ -190,7 +192,7 @@ export function EditLabelPage() {
                 onClick={() => navigate('/labels')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -198,7 +200,7 @@ export function EditLabelPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Updating...' : 'Update Label'}
+                {loading ? t('labelForm.updating') : t('labelForm.editLabel')}
               </Button>
             </div>
           </form>

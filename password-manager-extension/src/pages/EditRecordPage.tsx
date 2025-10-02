@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Eye, EyeOff, Save } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -14,6 +15,7 @@ interface RecordFormData {
 }
 
 export function EditRecordPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { passwordManager } = useAuthStore()
@@ -100,7 +102,7 @@ export function EditRecordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.title.trim() || !id) {
-      alert('Please fill in all required fields')
+      alert(t('recordForm.pleaseFillRequiredFields'))
       return
     }
 
@@ -115,7 +117,7 @@ export function EditRecordPage() {
       navigate('/records')
     } catch (error) {
       console.error('Failed to update record:', error)
-      alert('Failed to update record')
+      alert(t('recordForm.failedToUpdateRecord'))
     } finally {
       setLoading(false)
     }
@@ -133,7 +135,7 @@ export function EditRecordPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-sm text-slate-400">Loading record...</p>
+          <p className="mt-2 text-sm text-slate-400">{t('recordForm.loadingRecord')}</p>
         </div>
       </div>
     )
@@ -142,11 +144,11 @@ export function EditRecordPage() {
   if (!record) {
     return (
       <div className="text-center py-8">
-        <h3 className="text-lg font-medium text-white mb-2">Record not found</h3>
-        <p className="text-slate-400 mb-4">The record you're looking for doesn't exist.</p>
+        <h3 className="text-lg font-medium text-white mb-2">{t('recordForm.recordNotFound')}</h3>
+        <p className="text-slate-400 mb-4">{t('recordForm.recordNotFoundDesc')}</p>
         <Button onClick={() => navigate('/records')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Records
+          {t('recordForm.backToRecords')}
         </Button>
       </div>
     )
@@ -163,29 +165,29 @@ export function EditRecordPage() {
           className="text-slate-400 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('recordForm.back')}
         </Button>
-        <h1 className="text-xl font-semibold text-white">Edit Record</h1>
+        <h1 className="text-xl font-semibold text-white">{t('recordForm.editRecord')}</h1>
         <div className="w-16" /> {/* Spacer for centering */}
       </div>
 
       {/* Form Card */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Record Details</CardTitle>
+          <CardTitle className="text-white">{t('recordForm.recordDetails')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-slate-200 mb-2">
-                Title *
+                {t('recordForm.title')} *
               </label>
               <Input
                 id="title"
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter record title"
+                placeholder={t('recordForm.titlePlaceholder')}
                 required
                 className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
@@ -194,7 +196,7 @@ export function EditRecordPage() {
             {templateFields.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-slate-200 mb-3">
-                  Fields
+                  {t('recordForm.fields')}
                 </label>
                 <div className="space-y-4">
                   {templateFields.map((field) => (
@@ -207,7 +209,7 @@ export function EditRecordPage() {
                           id={field.name}
                           value={formData.fieldData[field.name] || ''}
                           onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
-                          placeholder={`Enter ${field.name.toLowerCase()}`}
+                          placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
                           required={!field.optional}
                           className="flex min-h-[80px] w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white ring-offset-background placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
@@ -218,7 +220,7 @@ export function EditRecordPage() {
                             type={field.type === 'password' ? (showPasswords[field.name] ? 'text' : 'password') : field.type}
                             value={formData.fieldData[field.name] || ''}
                             onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
-                            placeholder={`Enter ${field.name.toLowerCase()}`}
+                            placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
                             required={!field.optional}
                             className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                           />
@@ -244,7 +246,7 @@ export function EditRecordPage() {
             {labels.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-slate-200 mb-3">
-                  Labels (optional)
+                  {t('recordForm.labelsOptional')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {labels.map((label) => (
@@ -286,7 +288,7 @@ export function EditRecordPage() {
                 onClick={() => navigate('/records')}
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -294,7 +296,7 @@ export function EditRecordPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Updating...' : 'Update Record'}
+                {loading ? t('recordForm.updating') : t('recordForm.editRecord')}
               </Button>
             </div>
           </form>

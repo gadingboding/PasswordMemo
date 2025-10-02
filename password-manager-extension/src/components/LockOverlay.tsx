@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 export function LockOverlay() {
+  const { t, ready } = useTranslation()
   const { login } = useAuthStore()
   const [masterPassword, setMasterPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,13 +23,13 @@ export function LockOverlay() {
     try {
       const success = await login(masterPassword)
       if (!success) {
-        setError('Invalid master password. Please try again.')
+        setError(ready ? t('auth.incorrectPassword') : 'Invalid master password. Please try again.')
         setMasterPassword('')
       }
       // 如果成功，组件会自动隐藏因为isAuthenticated变为true
     } catch (err) {
       console.error('Login failed:', err)
-      setError('Authentication failed. Please try again.')
+      setError(ready ? t('auth.incorrectPassword') : 'Authentication failed. Please try again.')
       setMasterPassword('')
     } finally {
       setLoading(false)
@@ -47,8 +49,8 @@ export function LockOverlay() {
 
         {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Vault Locked</h1>
-          <p className="text-slate-400">Enter your master password to unlock</p>
+          <h1 className="text-2xl font-bold text-white mb-2">{ready ? t('auth.lock') : 'Vault Locked'}</h1>
+          <p className="text-slate-400">{ready ? t('auth.enterPassword') : 'Enter your master password to unlock'}</p>
         </div>
 
         {/* Unlock Form */}
@@ -56,7 +58,7 @@ export function LockOverlay() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label htmlFor="masterPassword" className="block text-sm font-medium text-slate-200">
-                Master Password
+                {ready ? t('auth.masterPassword') : 'Master Password'}
               </label>
               <div className="relative">
                 <Input
@@ -64,7 +66,7 @@ export function LockOverlay() {
                   type={showPassword ? 'text' : 'password'}
                   value={masterPassword}
                   onChange={(e) => setMasterPassword(e.target.value)}
-                  placeholder="Enter master password"
+                  placeholder={ready ? t('auth.enterPassword') : 'Enter master password'}
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pr-12"
                   required
                   autoFocus
@@ -96,12 +98,12 @@ export function LockOverlay() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Unlocking...
+                    {ready ? t('common.loading') : 'Unlocking...'}
                   </div>
                 ) : (
                   <>
                     <Lock className="h-4 w-4 mr-2" />
-                    Unlock Vault
+                    {ready ? t('auth.unlock') : 'Unlock Vault'}
                   </>
                 )}
               </Button>

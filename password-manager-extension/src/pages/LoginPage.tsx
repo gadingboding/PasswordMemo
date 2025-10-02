@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   
@@ -28,18 +30,18 @@ export function LoginPage() {
         <div className="text-center">
           <Lock className="mx-auto h-12 w-12 text-primary" />
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Password Manager
+            {t('login.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to access your vault
+            {t('login.subtitle')}
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Master Password</CardTitle>
+            <CardTitle>{t('login.masterPasswordTitle')}</CardTitle>
             <CardDescription>
-              Enter your master password to unlock your vault. If this is your first time, a new vault will be created.
+              {t('login.masterPasswordDesc')}
             </CardDescription>
           </CardHeader>
           
@@ -54,7 +56,7 @@ export function LoginPage() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter master password"
+                  placeholder={t('login.enterMasterPassword')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pr-10"
@@ -74,8 +76,8 @@ export function LoginPage() {
               </div>
               
               <div className="text-xs text-muted-foreground">
-                <p><strong>First time?</strong> Just enter a secure password to create your vault.</p>
-                <p><strong>Returning user?</strong> Enter your existing master password.</p>
+                <p><strong>{t('login.firstTime')}</strong> {t('login.firstTimeDesc')}</p>
+                <p><strong>{t('login.returningUser')}</strong> {t('login.returningUserDesc')}</p>
               </div>
               
               <Button
@@ -83,7 +85,7 @@ export function LoginPage() {
                 className="w-full"
                 disabled={isLoading || !password}
               >
-                {isLoading ? 'Processing...' : 'Continue'}
+                {isLoading ? t('login.processing') : t('login.continue')}
               </Button>
             </form>
           </CardContent>
