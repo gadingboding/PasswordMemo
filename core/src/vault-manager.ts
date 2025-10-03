@@ -22,6 +22,7 @@ import {
 import {CryptographyEngine} from './crypto-engine.js';
 import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
 import {KDFManager} from './kdf-manager.js';
+import {STORAGE_KEYS} from './constants.js';
 
 /**
  * Vault Manager class
@@ -126,7 +127,7 @@ export class VaultManager {
    */
   async saveVault(): Promise<void> {
     try {
-      await this.storage.write('vault-data', JSON.stringify(this.vault));
+      await this.storage.write(STORAGE_KEYS.VAULT_DATA, JSON.stringify(this.vault));
     } catch (error) {
       throw new Error(`Failed to save vault data: ${error}`);
     }
@@ -137,7 +138,7 @@ export class VaultManager {
    */
   async loadVaultFromStorage(): Promise<boolean> {
     try {
-      const vaultData = await this.storage.read('vault-data');
+      const vaultData = await this.storage.read(STORAGE_KEYS.VAULT_DATA);
       if (vaultData) {
         this.vault = JSON.parse(vaultData);
         return true;

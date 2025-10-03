@@ -133,8 +133,16 @@
     "autoLock": "Auto Lock",
     "export": "Export",
     "import": "Import",
-    "changeMasterPassword": "Change Master Password",
-    "changePin": "Change PIN"
+    "reset": "Reset",
+    "resetDesc": "Clear all data and reset the password manager to initial state",
+    "resetWarning": "Warning: This action cannot be undone",
+    "resetWarningDetail": "Reset will permanently delete your vault, user configuration, and all stored data. This action cannot be undone.",
+    "resetButton": "Reset Password Manager",
+    "resetConfirmTitle": "Confirm Reset",
+    "resetConfirmMessage": "Are you sure you want to reset the password manager? This will delete all data and return to the initial setup state.",
+    "resetFinalWarning": "This action will permanently delete all data, including your vault, user configuration, and all records. This action cannot be undone.",
+    "confirmReset": "Confirm Reset",
+    "resetting": "Resetting..."
   },
   "dialogs": {
     "confirmDelete": "Confirm to delete this item?",

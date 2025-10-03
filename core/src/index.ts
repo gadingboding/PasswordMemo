@@ -22,5 +22,8 @@ export {SyncManager} from './sync-manager.js';
 export {KDFManager} from './kdf-manager.js';
 export {KDFConfigAPI} from './kdf-config-api.js';
 
+// Export constants
+export * from './constants.js';
+
 // Placeholder export to prevent empty module error
 export const VERSION = '1.0.0';

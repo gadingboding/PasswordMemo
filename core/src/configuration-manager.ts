@@ -11,6 +11,7 @@ import {
 } from './types/index.js';
 import {CryptographyEngine} from './crypto-engine.js';
 import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
+import {STORAGE_KEYS} from './constants.js';
 
 /**
  * Configuration Manager class
@@ -37,7 +38,7 @@ export class ConfigurationManager {
    */
   async loadUserProfile(): Promise<UserProfile | null> {
     try {
-      const profileData = await this.storage.read('user-profile');
+      const profileData = await this.storage.read(STORAGE_KEYS.USER_PROFILE);
       if (profileData) {
         this.userProfile = JSON.parse(profileData);
         return this.userProfile;
@@ -53,7 +54,7 @@ export class ConfigurationManager {
    */
   async saveUserProfile(profile: UserProfile): Promise<void> {
     try {
-      await this.storage.write('user-profile', JSON.stringify(profile));
+      await this.storage.write(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
       this.userProfile = profile;
     } catch (error) {
       throw new Error('Failed to save user profile');
@@ -137,8 +138,8 @@ export class ConfigurationManager {
    */
   async clearAll(): Promise<void> {
     try {
-      await this.storage.remove('user-profile');
-      await this.storage.remove('vault');
+      await this.storage.remove(STORAGE_KEYS.USER_PROFILE);
+      await this.storage.remove(STORAGE_KEYS.VAULT_DATA);
       this.userProfile = null;
       this.webdavConfig = null;
     } catch (error) {

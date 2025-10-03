@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { PasswordManager } from 'password-manager-core'
+import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
 
 interface AuthState {
   isAuthenticated: boolean
@@ -11,6 +11,7 @@ interface AuthState {
   login: (password: string) => Promise<boolean>
   logout: () => void
   lock: () => void
+  reset: () => Promise<boolean>
   clearError: () => void
   setPasswordManager: (manager: PasswordManager) => void
 }
@@ -26,13 +27,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     try {
       const manager = PasswordManager.getInstance()
-      
+
       // Check if already initialized
       const isInitialized = await manager.isInitialized({
         basePath: undefined,
-        namespace: 'password-manager'
+        namespace: DEFAULT_STORAGE_NAMESPACE
       })
-      
+
       if (isInitialized) {
         // Already initialized, just initialize and authenticate
         await manager.initialize({
@@ -101,11 +102,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-  
+
   setPasswordManager: (manager: PasswordManager) => set({
     isAuthenticated: true,
     passwordManager: manager,
     isLoading: false,
     error: null
-  })
+  }),
+    reset: async () => {
+    set({ isLoading: true, error: null })
+
+    try {
+      const { passwordManager } = get()
+
+      // User must be logged in to access reset, so passwordManager must exist
+      if (!passwordManager) {
+        throw new Error('Password manager not available')
+      }
+
+      await passwordManager.reset()
+
+      // Reset all state
+      set({
+        isAuthenticated: false,
+        passwordManager: null,
+        isLoading: false,
+        error: null
+      })
+      return true
+    } catch (error) {
+      console.error('Reset error:', error)
+      set({
+        error: error instanceof Error ? error.message : 'Reset failed',
+        isLoading: false
+      })
+      return false
+    }
+  }
 }))

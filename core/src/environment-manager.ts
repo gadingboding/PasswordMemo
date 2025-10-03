@@ -83,7 +83,7 @@ class BrowserStorageAdapter implements IStorageAdapter {
   private readonly basePath: string;
 
   constructor(config: BrowserStorageConfig = {}) {
-    this.namespace = config.namespace || 'password-manager';
+    this.namespace = config.namespace || DEFAULT_STORAGE_NAMESPACE;
     this.basePath = config.basePath || '';
   }
 
@@ -189,7 +189,7 @@ class NodeStorageAdapter implements IStorageAdapter {
   constructor(config: NodeStorageConfig = {}) {
     this.baseDir = config.baseDir || './data';
     this.fileExtension = config.fileExtension || '.json';
-    this.namespace = config.namespace || 'password-manager';
+    this.namespace = config.namespace || DEFAULT_STORAGE_NAMESPACE;
   }
 
   /**
@@ -314,6 +314,8 @@ class NodeStorageAdapter implements IStorageAdapter {
 /**
  * Environment Manager singleton class
  */
+import {DEFAULT_STORAGE_NAMESPACE} from './constants.js';
+
 export class EnvironmentManager {
   private static instance: EnvironmentManager;
   private storage: IStorageAdapter | null = null;

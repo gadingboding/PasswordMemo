@@ -133,8 +133,16 @@
     "autoLock": "自动锁定",
     "export": "导出",
     "import": "导入",
-    "changeMasterPassword": "更改主密码",
-    "changePin": "更改PIN码"
+    "reset": "重置",
+    "resetDesc": "清除所有数据并重置密码管理器到初始状态",
+    "resetWarning": "警告：此操作不可撤销",
+    "resetWarningDetail": "重置将永久删除您的密码库、用户配置和所有存储的数据。此操作无法撤销。",
+    "resetButton": "重置密码管理器",
+    "resetConfirmTitle": "确认重置",
+    "resetConfirmMessage": "您确定要重置密码管理器吗？这将删除所有数据并返回到初始设置状态。",
+    "resetFinalWarning": "此操作将永久删除所有数据，包括您的密码库、用户配置和所有记录。此操作无法撤销。",
+    "confirmReset": "确认重置",
+    "resetting": "重置中..."
   },
   "dialogs": {
     "confirmDelete": "确认删除此项目？",

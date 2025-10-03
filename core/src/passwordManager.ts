@@ -26,6 +26,7 @@ import {CryptographyEngine} from './crypto-engine.js';
 import {SyncManager} from './sync-manager.js';
 import {WebDAVConfig} from './types/vault.js';
 import {KDFManager} from './kdf-manager.js';
+import {DEFAULT_STORAGE_NAMESPACE} from './constants.js';
 
 /**
  * Password Manager initialization configuration
@@ -112,7 +113,7 @@ export class PasswordManager {
       // Configure storage
       const storageConfig = {
         baseDir: config.storage?.basePath,
-        namespace: config.storage?.namespace || 'password-manager'
+        namespace: config.storage?.namespace || DEFAULT_STORAGE_NAMESPACE
       };
 
       this.environmentManager.getStorage(storageConfig);
@@ -1032,5 +1033,25 @@ export class PasswordManager {
     this.ensureInitialized();
     // TODO: Implement vault import
     throw new Error('Vault import not yet implemented');
+  }
+
+  /**
+   * Reset all data (vault and user profile)
+   * This will completely wipe all stored data and reset the password manager to initial state
+   */
+  async reset(): Promise<void> {
+    try {
+      // Clear all data from configuration manager
+      await this.configManager.clearAll();
+      
+      // Clear master key from memory
+      this.vaultManager.clearMasterKey();
+      
+      // Mark as uninitialized - don't reset vault data in memory
+      // This ensures the system will detect as uninitialized on next check
+      this.initialized = false;
+    } catch (error) {
+      throw new Error(`Failed to reset password manager: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }

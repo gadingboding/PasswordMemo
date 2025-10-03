@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe } from 'lucide-react'
 import { WebDAVSync } from '@/components/WebDAVSync'
+import { ResetSettings } from '@/components/ResetSettings'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { AppSettingsManager } from '@/lib/app-settings'
 
@@ -79,6 +80,7 @@ export function SettingsPage() {
       </Card>
 
       <WebDAVSync />
+      <ResetSettings />
     </div>
   )
 }
