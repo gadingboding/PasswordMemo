@@ -7,13 +7,13 @@
 
 import {
   DecryptedVaultRecord,
-  DEFAULT_KDF_CONFIG, MasterPassword,
+  DEFAULT_KDF_CONFIG,
+  MasterPassword,
   PullResult,
   PushResult,
   SyncConfig,
   SyncStatus,
   TemplateField,
-
   VaultLabel,
   VaultTemplate
 } from './types/index.js';
@@ -21,7 +21,7 @@ import {
 
 import {VaultManager} from './vault-manager.js';
 import {ConfigurationManager} from './configuration-manager.js';
-import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
+import {EnvironmentManager} from './environment-manager.js';
 import {CryptographyEngine} from './crypto-engine.js';
 import {SyncManager} from './sync-manager.js';
 import {WebDAVConfig} from './types/vault.js';
@@ -159,7 +159,7 @@ export class PasswordManager {
 
         // Derive master key from password
         const masterKeyResult = await this.kdfManager.deriveKey(masterPassword, kdfConfig);
-        this.vaultManager.setMasterKey(masterKeyResult.key);
+        await this.vaultManager.setMasterKey(masterKeyResult.key);
 
         // Create user profile first before saving WebDAV config
         await this.configManager.saveUserProfile({});
@@ -181,7 +181,7 @@ export class PasswordManager {
                 
                 // Derive master key using remote vault's KDF config
                 const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
-                this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
+                await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
                 
                 // Load remote vault into local vault manager
                 this.vaultManager.loadVault(remoteVault);
@@ -324,7 +324,7 @@ export class PasswordManager {
         };
       }
       const masterKeyResult = await this.kdfManager.deriveKey(password, kdfConfig);
-      this.vaultManager.setMasterKey(masterKeyResult.key);
+      await this.vaultManager.setMasterKey(masterKeyResult.key);
       return {success: true};
     } catch (error) {
       return {
@@ -830,13 +830,11 @@ export class PasswordManager {
 
     try {
       const vault = this.vaultManager.getVault();
-      const result = await this.syncManager.push(vault);
-
       // For push operations, we don't have a merged vault from the result
       // The KDF configuration update should be handled during pull operations
       // when remote data is merged with local data
 
-      return result;
+      return await this.syncManager.push(vault);
     } catch (error) {
       return {
         success: false,

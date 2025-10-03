@@ -35,8 +35,7 @@
     "enterPin": "请输入PIN码",
     "unlock": "解锁",
     "lock": "锁定",
-    "incorrectPassword": "密码错误",
-    "incorrectPin": "PIN码错误"
+    "incorrectPassword": "密码错误"
   },
   "records": {
     "title": "密码记录",
@@ -119,7 +118,8 @@
     "pullCompleted": "拉取成功完成。已拉取 {{count}} 条记录并更新密码库。",
     "pullNoChanges": "拉取成功完成。没有发现更改。",
     "pushFailed": "推送失败：{{error}}",
-    "pullFailed": "拉取失败：{{error}}"
+    "pullFailed": "拉取失败：{{error}}",
+    "reauthFailed": "重新验证失败：{{error}}"
   },
   "settings": {
     "general": "常规",

@@ -53,8 +53,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           })
           return true
         } else {
+          // Enhanced error handling for sentinel password validation
+          let errorMessage = result.error || 'Authentication failed'
+          
+          // Check if it's a sentinel validation error
+          if (result.error?.includes('validation failed') ||
+              result.error?.includes('sentinel value mismatch') ||
+              result.error?.includes('Invalid master key')) {
+            errorMessage = 'Incorrect master password. Please check your password and try again.'
+          }
+          
           set({
-            error: result.error || 'Authentication failed',
+            error: errorMessage,
             isLoading: false
           })
           return false
@@ -70,8 +80,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error('Authentication error:', error)
+      
+      // Enhanced error handling for different types of errors
+      let errorMessage = 'Authentication failed'
+      if (error instanceof Error) {
+        if (error.message.includes('validation failed') ||
+            error.message.includes('sentinel') ||
+            error.message.includes('Invalid master key')) {
+          errorMessage = 'Incorrect master password. Please check your password and try again.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       set({
-        error: error instanceof Error ? error.message : 'Authentication failed',
+        error: errorMessage,
         isLoading: false
       })
       return false

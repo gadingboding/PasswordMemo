@@ -15,7 +15,9 @@ import {
   PaddedData,
   PaddingBucketSize,
   PADDING_BUCKETS,
-  MasterPassword, AES_GCM, CHACHA20_POLY1305_IETF
+  AES_GCM, CHACHA20_POLY1305_IETF,
+  SentinelValidationResult,
+  DEFAULT_SENTINEL_VALUE
 } from './types/index.js';
 
 /**
@@ -316,4 +318,49 @@ export class CryptographyEngine {
     }
     return result;
   }
+
+  /**
+   * Create a new sentinel password configuration
+   * @param masterKey The master key to encrypt the sentinel value
+   * @returns Encrypted sentinel value
+   */
+  static async createSentinel(masterKey: BinaryData): Promise<EncryptedData> {
+    return await this.encrypt(
+      DEFAULT_SENTINEL_VALUE,
+      masterKey
+    );
+  }
+
+  /**
+   * Validate the master key using the sentinel password
+   * @param sentinelValue The encrypted sentinel value from vault
+   * @param masterKey The master key to validate
+   * @returns Validation result
+   */
+  static async validateMasterKey(
+    sentinelValue: EncryptedData,
+    masterKey: BinaryData
+  ): Promise<SentinelValidationResult> {
+    try {
+      // Decrypt the sentinel value
+      const decryptedValue = await this.decryptToString(
+        sentinelValue,
+        masterKey
+      );
+
+      // Check if the decrypted value matches the expected sentinel value
+      const isValid = decryptedValue === DEFAULT_SENTINEL_VALUE;
+
+      return {
+        success: isValid,
+        error: isValid ? undefined : 'Master key validation failed: sentinel value mismatch'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Master key validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
 }

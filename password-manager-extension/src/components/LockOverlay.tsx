@@ -33,11 +33,6 @@ export function LockOverlay() {
         namespace: 'password-manager'
       })
       
-      // Log the results for debugging
-      console.log('LockOverlay initialization status check results:', {
-        initialized
-      })
-      
       setIsInitialized(initialized)
     } catch (error) {
       console.error('Failed to check initialization status:', error)

@@ -68,3 +68,20 @@ export interface PaddedData {
   /** Size of the bucket used */
   bucketSize: PaddingBucketSize;
 }
+
+
+/**
+ * Sentinel password validation result
+ */
+export interface SentinelValidationResult {
+  /** Whether validation was successful */
+  success: boolean;
+  /** Error message if validation failed */
+  error?: string;
+}
+
+/**
+ * Default sentinel password value
+ * This is a simple string that will be encrypted with the master key
+ */
+export const DEFAULT_SENTINEL_VALUE = '123456789';

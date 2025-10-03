@@ -13,6 +13,7 @@ interface PasswordDialogProps {
   description: string
   submitText: string
   loading?: boolean
+  error?: string | null
 }
 
 export function PasswordDialog({
@@ -22,7 +23,8 @@ export function PasswordDialog({
   title,
   description,
   submitText,
-  loading = false
+  loading = false,
+  error = null
 }: PasswordDialogProps) {
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
@@ -56,6 +58,19 @@ export function PasswordDialog({
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <p className="text-sm text-slate-400">{description}</p>
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">Authentication Error:</span>
+              </div>
+              <p className="mt-1">{error}</p>
+              <p className="mt-2 text-xs text-red-600">Please check your password and try again.</p>
+            </div>
+          )}
           
           <div className="space-y-2">
             <label htmlFor="password" className="block text-sm font-medium text-slate-200">

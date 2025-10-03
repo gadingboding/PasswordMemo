@@ -19,7 +19,8 @@ export function WebDAVSync() {
   const [loading, setLoading] = useState(false)
   const [passwordDialog, setPasswordDialog] = useState({
     open: false,
-    mode: 'push' as 'push' | 'pull'
+    mode: 'push' as 'push' | 'pull',
+    error: null as string | null
   })
   const [isConfigured, setIsConfigured] = useState(false)
 
@@ -78,11 +79,11 @@ export function WebDAVSync() {
   }
 
   const handlePush = async () => {
-    setPasswordDialog({ open: true, mode: 'push' })
+    setPasswordDialog({ open: true, mode: 'push', error: null })
   }
 
   const handlePull = async () => {
-    setPasswordDialog({ open: true, mode: 'pull' })
+    setPasswordDialog({ open: true, mode: 'pull', error: null })
   }
 
   const handlePasswordSubmit = async (password: string) => {
@@ -94,8 +95,16 @@ export function WebDAVSync() {
         const result = await passwordManager.push(password)
         if (result.success) {
           alert(ready ? t('sync.pushCompleted', { count: result.recordsPushed }) : `Push completed successfully. ${result.recordsPushed} records pushed.`)
+          setPasswordDialog({ open: false, mode: 'push', error: null })
         } else {
-          alert(ready ? t('sync.pushFailed', { error: result.error }) : `Push failed: ${result.error}`)
+          // Check if it's a re-authentication error
+          if (result.error?.includes('Re-authentication failed') || result.error?.includes('Master key validation failed') || result.error?.includes('validation failed')) {
+            const errorMessage = 'Incorrect master password. Please check your password and try again.'
+            setPasswordDialog({ ...passwordDialog, error: errorMessage })
+          } else {
+            alert(ready ? t('sync.pushFailed', { error: result.error }) : `Push failed: ${result.error}`)
+            setPasswordDialog({ open: false, mode: 'push', error: null })
+          }
         }
       } else {
         const result = await passwordManager.pull(password)
@@ -105,8 +114,16 @@ export function WebDAVSync() {
           } else {
             alert(ready ? t('sync.pullNoChanges') : 'Pull completed successfully. No changes found.')
           }
+          setPasswordDialog({ open: false, mode: 'pull', error: null })
         } else {
-          alert(ready ? t('sync.pullFailed', { error: result.error }) : `Pull failed: ${result.error}`)
+          // Check if it's a re-authentication error
+          if (result.error?.includes('Re-authentication failed') || result.error?.includes('Master key validation failed') || result.error?.includes('validation failed')) {
+            const errorMessage = 'Incorrect master password. Please check your password and try again.'
+            setPasswordDialog({ ...passwordDialog, error: errorMessage })
+          } else {
+            alert(ready ? t('sync.pullFailed', { error: result.error }) : `Pull failed: ${result.error}`)
+            setPasswordDialog({ open: false, mode: 'pull', error: null })
+          }
         }
       }
       
@@ -115,18 +132,24 @@ export function WebDAVSync() {
     } catch (error) {
       console.error(`Failed to ${passwordDialog.mode}:`, error)
       const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(passwordDialog.mode === 'push'
-        ? (ready ? t('sync.pushFailed', { error: errorMessage }) : `Push failed: ${errorMessage}`)
-        : (ready ? t('sync.pullFailed', { error: errorMessage }) : `Pull failed: ${errorMessage}`))
+      // Check if it's a re-authentication error
+      if (errorMessage.includes('Re-authentication failed') || errorMessage.includes('Master key validation failed') || errorMessage.includes('validation failed')) {
+        const userErrorMessage = 'Incorrect master password. Please check your password and try again.'
+        setPasswordDialog({ ...passwordDialog, error: userErrorMessage })
+      } else {
+        alert(passwordDialog.mode === 'push'
+          ? (ready ? t('sync.pushFailed', { error: errorMessage }) : `Push failed: ${errorMessage}`)
+          : (ready ? t('sync.pullFailed', { error: errorMessage }) : `Pull failed: ${errorMessage}`))
+        setPasswordDialog({ open: false, mode: passwordDialog.mode, error: null })
+      }
     } finally {
       setLoading(false)
-      setPasswordDialog({ open: false, mode: 'push' })
     }
   }
 
   const handlePasswordDialogClose = () => {
     if (!loading) {
-      setPasswordDialog({ open: false, mode: 'push' })
+      setPasswordDialog({ open: false, mode: passwordDialog.mode, error: null })
     }
   }
 
@@ -290,6 +313,7 @@ export function WebDAVSync() {
           ? (ready ? t('sync.push') : 'Push')
           : (ready ? t('sync.pull') : 'Pull')}
         loading={loading}
+        error={passwordDialog.error}
       />
     </Card>
   )

@@ -1,10 +1,5 @@
 // Background script for Password Manager Extension
 
-// Handle extension installation
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Password Manager Extension installed');
-});
-
 // Handle messages from content script or popup
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'getActiveTab') {

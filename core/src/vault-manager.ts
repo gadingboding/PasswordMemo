@@ -7,17 +7,17 @@
 
 import {v4 as uuidv4} from 'uuid';
 import {
-  Vault,
-  VaultRecord,
-  VaultLabel,
-  VaultTemplate,
-  TemplateField,
-  EncryptedData,
   BinaryData,
-  DecryptedVaultRecord,
   DecryptedRecordField,
+  DecryptedVaultRecord,
+  DEFAULT_KDF_CONFIG,
+  EncryptedData,
   KDFConfig,
-  DEFAULT_KDF_CONFIG
+  TemplateField,
+  Vault,
+  VaultLabel,
+  VaultRecord,
+  VaultTemplate
 } from './types/index.js';
 import {CryptographyEngine} from './crypto-engine.js';
 import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
@@ -62,8 +62,17 @@ export class VaultManager {
   /**
    * Set the master key for encryption/decryption
    */
-  setMasterKey(masterKey: BinaryData): void {
+  async setMasterKey(masterKey: BinaryData): Promise<void> {
     this.masterKey = masterKey;
+    if (!this.vault.sentinel) {
+      this.vault.sentinel = await CryptographyEngine.createSentinel(this.masterKey);
+    } else {
+      let result = await this.validateMasterKey()
+      if (!result.success) {
+        this.masterKey = null;
+        throw new Error(`Invalid master key: ${result.error}`);
+      }
+    }
   }
 
   /**
@@ -102,10 +111,30 @@ export class VaultManager {
   }
 
   /**
-   * Get the KDF manager
+   * Validate master key using sentinel password
    */
-  getKDFManager(): KDFManager {
-    return this.kdfManager;
+  async validateMasterKey(): Promise<{ success: boolean; error?: string }> {
+    if (!this.masterKey) {
+      return {success: false, error: 'Master key not available'};
+    }
+
+    const validationResult = await CryptographyEngine.validateMasterKey(
+      this.vault.sentinel!,
+      this.masterKey
+    );
+
+    return {
+      success: validationResult.success,
+      error: validationResult.error
+    };
+  }
+
+  /**
+   * Update sentinel when master key changes
+   */
+  async updateSentinel(newMasterKey: BinaryData): Promise<void> {
+    // Always create a new sentinel with the new master key
+    this.vault.sentinel = await CryptographyEngine.createSentinel(newMasterKey);
   }
 
   /**
@@ -732,10 +761,13 @@ export class VaultManager {
       // Step 4: Re-encrypt all data with new master key
       await this.reEncryptAllData(decryptedData, newMasterKey);
 
-      // Step 5: Update current master key
-      this.setMasterKey(newMasterKey);
+      // Step 5: Update sentinel password with new master key
+      await this.updateSentinel(newMasterKey);
 
-      // Step 6: Save vault with new configuration and re-encrypted data
+      // Step 6: Update current master key
+      await this.setMasterKey(newMasterKey);
+
+      // Step 7: Save vault with new configuration and re-encrypted data
       await this.saveVault();
 
       return true; // KDF configuration was updated

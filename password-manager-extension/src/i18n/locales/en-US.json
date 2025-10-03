@@ -35,8 +35,7 @@
     "enterPin": "Enter PIN",
     "unlock": "Unlock",
     "lock": "Lock",
-    "incorrectPassword": "Incorrect Password",
-    "incorrectPin": "Incorrect PIN"
+    "incorrectPassword": "Incorrect Password"
   },
   "records": {
     "title": "Password Records",
@@ -119,7 +118,8 @@
     "pullCompleted": "Pull completed successfully. {{count}} records pulled and vault updated.",
     "pullNoChanges": "Pull completed successfully. No changes found.",
     "pushFailed": "Push failed: {{error}}",
-    "pullFailed": "Pull failed: {{error}}"
+    "pullFailed": "Pull failed: {{error}}",
+    "reauthFailed": "Re-authentication failed: {{error}}"
   },
   "settings": {
     "general": "General",

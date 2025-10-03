@@ -99,6 +99,8 @@ export interface Vault {
   history: string[];
   /** KDF configuration for master key derivation */
   kdf: KDFConfig;
+  /** Sentinel password configuration for master key validation */
+  sentinel?: EncryptedData;
 }
 
 /**
