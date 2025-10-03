@@ -7,7 +7,7 @@
 
 // Export the unified PasswordManager interface
 export {PasswordManager} from './passwordManager.js';
-export type {PasswordManagerConfig, AuthResult} from './passwordManager.js';
+export type {PasswordManagerConfig, AuthResult, InitializeParams} from './passwordManager.js';
 
 // Export core modules and types for advanced usage
 export * from './types/index.js';

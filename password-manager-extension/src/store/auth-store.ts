@@ -12,6 +12,7 @@ interface AuthState {
   logout: () => void
   lock: () => void
   clearError: () => void
+  setPasswordManager: (manager: PasswordManager) => void
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -24,24 +25,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
     
     try {
-      const manager = new PasswordManager()
-      await manager.initialize({
-        storage: {
-          basePath: undefined, // 使用 localStorage
-          namespace: 'password-manager'
-        }
+      const manager = PasswordManager.getInstance()
+      
+      // Check if already initialized
+      const isInitialized = await manager.isInitialized({
+        basePath: undefined,
+        namespace: 'password-manager'
       })
-      const result = await manager.authenticate(password)
-      if (result.success) {
-        set({
-          isAuthenticated: true,
-          passwordManager: manager,
-          isLoading: false
+      
+      if (isInitialized) {
+        // Already initialized, just initialize and authenticate
+        await manager.initialize({
+          config: {
+            storage: {
+              basePath: undefined,
+              namespace: 'password-manager'
+            }
+          }
         })
-        return true
+        const result = await manager.authenticate(password)
+        if (result.success) {
+          set({
+            isAuthenticated: true,
+            passwordManager: manager,
+            isLoading: false
+          })
+          return true
+        } else {
+          set({
+            error: result.error || 'Authentication failed',
+            isLoading: false
+          })
+          return false
+        }
       } else {
+        // Not initialized, this shouldn't happen in normal flow
+        // But we handle it gracefully
         set({
-          error: result.error || 'Authentication failed',
+          error: 'Password manager not initialized. Please set up a new vault.',
           isLoading: false
         })
         return false
@@ -79,5 +100,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
   },
 
-  clearError: () => set({ error: null })
+  clearError: () => set({ error: null }),
+  
+  setPasswordManager: (manager: PasswordManager) => set({
+    isAuthenticated: true,
+    passwordManager: manager,
+    isLoading: false,
+    error: null
+  })
 }))

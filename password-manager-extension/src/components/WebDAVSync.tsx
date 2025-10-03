@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { PasswordDialog } from '@/components/ui/PasswordDialog'
-import { webdavPermissions } from '@/utils/permissions'
-import { AppSettingsManager } from '@/lib/app-settings'
 
 export function WebDAVSync() {
   const { t, ready } = useTranslation()
@@ -31,20 +29,22 @@ export function WebDAVSync() {
 
   const loadSettings = async () => {
     try {
-      // Load WebDAV configuration from app settings
-      const settingsManager = AppSettingsManager.getInstance()
-      const settings = await settingsManager.loadSettings()
-      
-      if (settings.webdav_config) {
-        setWebdavConfig({
-          url: settings.webdav_config.url,
-          username: settings.webdav_config.username,
-          password: settings.webdav_config.password
-        })
-        setIsConfigured(true)
-      }
-
-      if (passwordManager) {
+      // Only load from password manager (user profile) - never from app settings for security
+      if (passwordManager && passwordManager.isUnlocked()) {
+        try {
+          const webdavConfigFromManager = await passwordManager.getWebDAVConfig()
+          if (webdavConfigFromManager) {
+            setWebdavConfig({
+              url: webdavConfigFromManager.url,
+              username: webdavConfigFromManager.username,
+              password: webdavConfigFromManager.password
+            })
+            setIsConfigured(true)
+          }
+        } catch (error) {
+          console.error('Failed to load WebDAV config from password manager:', error)
+        }
+        
         const status = passwordManager.getSyncStatus()
         setSyncStatus(status)
       }
@@ -56,29 +56,16 @@ export function WebDAVSync() {
   const handleConfigureWebDAV = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // WebDAV configuration should only be saved in the password manager for security
+    if (!passwordManager || !passwordManager.isUnlocked()) {
+      alert(ready ? t('sync.webdavConfigLocked') : 'Please unlock your vault first to configure WebDAV settings')
+      return
+    }
+
     setLoading(true)
     try {
-      // Request WebDAV permissions first
-      if (webdavConfig.url) {
-        const hasPermission = await webdavPermissions.check(webdavConfig.url)
-        if (!hasPermission) {
-          const granted = await webdavPermissions.request(webdavConfig.url)
-          if (!granted) {
-            alert(ready ? t('sync.webdavPermissionRequired') : 'Cross-origin permission required to configure WebDAV server')
-            setLoading(false)
-            return
-          }
-        }
-      }
-
-      // Save WebDAV configuration to app-settings
-      const settingsManager = AppSettingsManager.getInstance()
-      await settingsManager.updateSetting('webdav_config', webdavConfig)
-      
-      // If passwordManager is available, also configure it in core
-      if (passwordManager) {
-        await passwordManager.configureWebDAV(webdavConfig)
-      }
+      // Save WebDAV configuration to password manager (user profile) only
+      await passwordManager.configureWebDAV(webdavConfig)
       
       setIsConfigured(true)
       alert(ready ? t('sync.webdavConfigSaved') : 'WebDAV configuration saved successfully')
@@ -144,10 +131,17 @@ export function WebDAVSync() {
   }
 
   const handleResetConfig = async () => {
-    const settingsManager = AppSettingsManager.getInstance()
-    await settingsManager.updateSetting('webdav_config', undefined)
-    setWebdavConfig({ url: '', username: '', password: '' })
-    setIsConfigured(false)
+    try {
+      // Only reset in password manager - never in app settings for security
+      if (passwordManager && passwordManager.isUnlocked()) {
+        // Use the dedicated method to clear WebDAV config
+        await passwordManager.clearWebDAVConfig()
+      }
+      
+      setIsConfigured(false)
+    } catch (error) {
+      console.error('Failed to reset WebDAV config:', error)
+    }
   }
 
   return (

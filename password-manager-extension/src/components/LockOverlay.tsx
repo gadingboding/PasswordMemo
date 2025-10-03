@@ -1,17 +1,55 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Lock, Eye, EyeOff } from 'lucide-react'
+import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LockOverlay() {
   const { t, ready } = useTranslation()
-  const { login } = useAuthStore()
+  const { login, setPasswordManager } = useAuthStore()
   const [masterPassword, setMasterPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
+  const [showInitialization, setShowInitialization] = useState(false)
+
+  // Check if already initialized on mount
+  useEffect(() => {
+    checkInitializationStatus()
+  }, [])
+
+  const checkInitializationStatus = async () => {
+    try {
+      // Use the singleton instance to check initialization status
+      const manager = PasswordManager.getInstance()
+      
+      // Use the isInitialized method to check status without full initialization
+      const initialized = await manager.isInitialized({
+        basePath: undefined,
+        namespace: 'password-manager'
+      })
+      
+      // Log the results for debugging
+      console.log('LockOverlay initialization status check results:', {
+        initialized
+      })
+      
+      setIsInitialized(initialized)
+    } catch (error) {
+      console.error('Failed to check initialization status:', error)
+      setIsInitialized(false)
+    }
+  }
+
+  const handleInitializationComplete = (passwordManager: PasswordManager) => {
+    setPasswordManager(passwordManager)
+    setIsInitialized(true)
+    setShowInitialization(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +74,29 @@ export function LockOverlay() {
     }
   }
 
+
+  // Show loading while checking initialization status
+  if (isInitialized === null) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
+          <p className="mt-2 text-sm text-slate-400">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show initialization flow for new users
+  if (showInitialization || !isInitialized) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+        <div className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+          <InitializationFlow onComplete={handleInitializationComplete} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
@@ -115,7 +176,7 @@ export function LockOverlay() {
         {/* Hint */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
-            Don't remember your master password? 
+            Don't remember your master password?
             <br />
             You'll need to reset your vault.
           </p>

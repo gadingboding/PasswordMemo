@@ -1,17 +1,49 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LoginPage() {
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
+  const [showInitialization, setShowInitialization] = useState(false)
   
-  const { login, isLoading, error, clearError } = useAuthStore()
+  const { login, isLoading, error, clearError, setPasswordManager } = useAuthStore()
+
+  // Check if already initialized on mount
+  useEffect(() => {
+    checkInitializationStatus()
+  }, [])
+
+  const checkInitializationStatus = async () => {
+    try {
+      // Use the singleton instance to check initialization status
+      const manager = PasswordManager.getInstance()
+      
+      // Use the isInitialized method to check status without full initialization
+      const initialized = await manager.isInitialized({
+        basePath: undefined,
+        namespace: 'password-manager'
+      })
+      
+      // Log the results for debugging
+      console.log('Initialization status check results:', {
+        initialized
+      })
+      
+      setIsInitialized(initialized)
+    } catch (error) {
+      console.error('Failed to check initialization status:', error)
+      setIsInitialized(false)
+    }
+  }
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,6 +56,34 @@ export function LoginPage() {
     }
   }
 
+  const handleInitializationComplete = (passwordManager: PasswordManager) => {
+    setPasswordManager(passwordManager)
+    setIsInitialized(true)
+    setShowInitialization(false)
+  }
+
+  const handleSetupNewVault = () => {
+    setShowInitialization(true)
+  }
+
+  // Show loading while checking initialization status
+  if (isInitialized === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show initialization flow for new users
+  if (showInitialization || !isInitialized) {
+    return <InitializationFlow onComplete={handleInitializationComplete} />
+  }
+
+  // Show regular login for existing users
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -76,8 +136,16 @@ export function LoginPage() {
               </div>
               
               <div className="text-xs text-muted-foreground">
-                <p><strong>{t('login.firstTime')}</strong> {t('login.firstTimeDesc')}</p>
                 <p><strong>{t('login.returningUser')}</strong> {t('login.returningUserDesc')}</p>
+                <p className="mt-2">
+                  <button
+                    type="button"
+                    onClick={handleSetupNewVault}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {t('login.firstTime')} {t('login.firstTimeDesc')}
+                  </button>
+                </p>
               </div>
               
               <Button
