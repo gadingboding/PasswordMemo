@@ -460,6 +460,25 @@ export class SyncManager {
   }
 
   /**
+   * Test WebDAV connection with provided configuration
+   * @param config WebDAV configuration to test
+   * @returns True if connection is successful, false otherwise
+   */
+  async testWebDAVConnection(config: WebDAVConfig): Promise<boolean> {
+    try {
+      // Create a temporary storage adapter for testing
+      const tempStorage = new WebDAVRemoteStorage(config);
+      
+      // Test connection by checking if the root directory exists
+      await tempStorage.exists('/');
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * Clean up resources
    */
   destroy(): void {

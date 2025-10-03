@@ -21,7 +21,7 @@ import {
 
 import {VaultManager} from './vault-manager.js';
 import {ConfigurationManager} from './configuration-manager.js';
-import {EnvironmentManager} from './environment-manager.js';
+import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
 import {CryptographyEngine} from './crypto-engine.js';
 import {SyncManager} from './sync-manager.js';
 import {WebDAVConfig} from './types/vault.js';
@@ -40,7 +40,20 @@ export interface PasswordManagerConfig {
   },
 
   /** WebDAV configuration for remote storage */
-  webdav?: WebDAVConfig
+  webdav?: WebDAVConfig,
+
+  /** Whether to pull remote vault after WebDAV configuration */
+  pullRemoteVault?: boolean
+}
+
+/**
+ * Password Manager initialization parameters
+ */
+export interface InitializeParams {
+  /** Configuration */
+  config?: PasswordManagerConfig,
+  /** Master password for initialization */
+  masterPassword?: MasterPassword
 }
 
 /**
@@ -64,8 +77,9 @@ export class PasswordManager {
   private syncManager: SyncManager;
   private kdfManager: KDFManager;
   private initialized: boolean = false;
+  private static instance: PasswordManager | null = null;
 
-  constructor() {
+  private constructor() {
     this.environmentManager = EnvironmentManager.getInstance();
     this.vaultManager = new VaultManager();
     this.configManager = new ConfigurationManager();
@@ -74,13 +88,25 @@ export class PasswordManager {
   }
 
   /**
-   * Initialize the password manager
-   * @param config Initialization configuration
+   * Get the singleton instance of PasswordManager
    */
-  async initialize(config: PasswordManagerConfig = {}): Promise<void> {
+  static getInstance(): PasswordManager {
+    if (!PasswordManager.instance) {
+      PasswordManager.instance = new PasswordManager();
+    }
+    return PasswordManager.instance;
+  }
+
+  /**
+   * Initialize the password manager
+   * @param params Initialization parameters including config and master password
+   */
+  async initialize(params: InitializeParams = {}): Promise<void> {
     if (this.initialized) {
       return;
     }
+
+    const { config = {}, masterPassword } = params;
 
     try {
       // Configure storage
@@ -101,63 +127,26 @@ export class PasswordManager {
       };
       this.syncManager.configureSync(syncConfig);
 
+      // Check if already initialized - if so, just mark as initialized and return
+      const isAlreadyInitialized = await this.isInitialized();
+      if (isAlreadyInitialized) {
+        this.initialized = true;
+        return;
+      }
+
       // Check if user profile exists
       const userProfile = await this.configManager.loadUserProfile();
       const vaultExists = await this.vaultManager.loadVaultFromStorage();
       const uninitialized = !userProfile || !vaultExists;
 
-      // Handle WebDAV configuration if provided
-      if (config.webdav) {
-        // Initialize storage adapter
-        await this.syncManager.initializeStorage(config.webdav);
-
-        // Try to load remote vault
-        const remoteVault = await this.syncManager['loadRemoteVault']();
-
-        if (remoteVault) {
-          // Remote vault exists, load it into local vault manager
-          this.vaultManager.loadVault(remoteVault);
-
-          // Save remote vault to local storage for offline access
-          await this.vaultManager.saveVault();
-        } else {
-          // Remote vault doesn't exist, create a new one
-          // Initialize vault KDF configuration with a unique salt for KDF
-          const kdfSalt = await CryptographyEngine.generateSalt();
-
-          const kdfConfig = {
-            ...DEFAULT_KDF_CONFIG,
-            params: {
-              ...DEFAULT_KDF_CONFIG.params,
-              salt: kdfSalt
-            }
-          };
-          this.vaultManager.setKDFConfig(kdfConfig);
-
-          // Save vault to storage
-          await this.vaultManager.saveVault();
-
-          // Push the new vault to remote storage
-          await this.syncManager.push(this.vaultManager.getVault());
+      if (uninitialized) {
+        // For new initialization, we need a master password
+        if (!masterPassword) {
+          throw new Error('Master password is required for initialization');
         }
 
-        // Create or update user profile with WebDAV configuration
-        if (!userProfile) {
-          // Load the created profile to get the master key
-          await this.configManager.loadUserProfile();
-        }
-
-        // Save WebDAV configuration
-        const masterKey = this.vaultManager.getMasterKey();
-        if (masterKey) {
-          await this.configManager.saveWebDAVConfig(config.webdav, masterKey);
-        }
-      } else if (uninitialized) {
         // Initialize vault KDF configuration with a unique salt for KDF
-        // This ensures each instance has its own unique KDF salt for enhanced security
         const kdfSalt = await CryptographyEngine.generateSalt();
-
-        // override salt
         const kdfConfig = {
           ...DEFAULT_KDF_CONFIG,
           params: {
@@ -167,11 +156,71 @@ export class PasswordManager {
         };
         this.vaultManager.setKDFConfig(kdfConfig);
 
-        // Save vault to storage
-        await this.vaultManager.saveVault();
-        
-        // Create user profile when creating new vault
+        // Derive master key from password
+        const masterKeyResult = await this.kdfManager.deriveKey(masterPassword, kdfConfig);
+        this.vaultManager.setMasterKey(masterKeyResult.key);
+
+        // Create user profile first before saving WebDAV config
         await this.configManager.saveUserProfile({});
+
+        // Handle WebDAV configuration if provided
+        if (config.webdav) {
+          // Initialize storage adapter
+          await this.syncManager.initializeStorage(config.webdav);
+
+          // Try to load remote vault if pullRemoteVault is true
+          if (config.pullRemoteVault) {
+            const remoteVault = await this.syncManager['loadRemoteVault']();
+
+            if (remoteVault) {
+              // Remote vault exists, use its KDF configuration and master key
+              if (remoteVault.kdf) {
+                // Use remote vault's KDF configuration
+                this.vaultManager.setKDFConfig(remoteVault.kdf);
+                
+                // Derive master key using remote vault's KDF config
+                const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
+                this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
+                
+                // Load remote vault into local vault manager
+                this.vaultManager.loadVault(remoteVault);
+
+                // Save remote vault to local storage for offline access
+                await this.vaultManager.saveVault();
+
+                // Save WebDAV configuration with remote master key
+                await this.configManager.saveWebDAVConfig(config.webdav, remoteMasterKeyResult.key);
+              } else {
+                throw new Error('Remote vault does not contain KDF configuration');
+              }
+            } else {
+              // Remote vault doesn't exist, create a new one with local KDF config
+              // Save vault to storage
+              await this.vaultManager.saveVault();
+
+              // Save WebDAV configuration with local master key
+              await this.configManager.saveWebDAVConfig(config.webdav, masterKeyResult.key);
+            }
+          } else {
+            // Don't pull remote vault, just create local vault
+            // Save vault to storage
+            await this.vaultManager.saveVault();
+
+            // Save WebDAV configuration with local master key
+            await this.configManager.saveWebDAVConfig(config.webdav, masterKeyResult.key);
+          }
+        } else {
+          // No WebDAV configuration, just create local vault
+          // Save vault to storage
+          await this.vaultManager.saveVault();
+        }
+      } else {
+        // Already initialized, just set up the environment
+        // Handle WebDAV configuration if provided
+        if (config.webdav) {
+          // Initialize storage adapter
+          await this.syncManager.initializeStorage(config.webdav);
+        }
       }
 
       this.initialized = true;
@@ -182,15 +231,71 @@ export class PasswordManager {
 
   /**
    * Check if the password manager is initialized
+   * This method can be called before initialization to check status
+   * @param storageConfig Optional storage configuration if not yet initialized
    * @returns True if both vault and user profile exist, false otherwise
    */
-  async isInitialized(): Promise<boolean> {
+  async isInitialized(storageConfig?: { basePath?: string; namespace?: string }): Promise<boolean> {
     try {
-      const userProfile = await this.configManager.loadUserProfile();
-      if (!userProfile) {
-        return false;
+      if (!this.initialized && storageConfig) {
+        // For uninitialized state, check directly without side effects
+        return await this.checkInitializationStatusDirectly(storageConfig);
+      } else {
+        // Already initialized, use existing managers
+        const userProfile = await this.configManager.loadUserProfile();
+        if (!userProfile) {
+          return false;
+        }
+        return await this.vaultManager.loadVaultFromStorage();
       }
-      return await this.vaultManager.loadVaultFromStorage();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Check initialization status directly without side effects
+   * @private
+   */
+  private async checkInitializationStatusDirectly(storageConfig: { basePath?: string; namespace?: string }): Promise<boolean> {
+    try {
+      const environment = this.environmentManager.getEnvironment();
+      const namespace = storageConfig.namespace || 'password-manager';
+      
+      if (environment === 'browser') {
+        // Check localStorage directly without creating storage adapter
+        const userProfileKey = `${namespace}:${storageConfig.basePath || ''}:user-profile`.replace(/:+/g, ':');
+        const vaultKey = `${namespace}:${storageConfig.basePath || ''}:vault`.replace(/:+/g, ':');
+        
+        const userProfileExists = localStorage.getItem(userProfileKey) !== null;
+        if (!userProfileExists) {
+          return false;
+        }
+        
+        const vaultExists = localStorage.getItem(vaultKey) !== null;
+        return vaultExists;
+      } else {
+        // For Node.js, check file system directly
+        const { join } = await import('path');
+        const { promises: fs } = await import('fs');
+        
+        const baseDir = storageConfig.basePath || './data';
+        const userProfilePath = join(baseDir, namespace, 'user-profile.json');
+        const vaultPath = join(baseDir, namespace, 'vault.json');
+        
+        try {
+          await fs.access(userProfilePath);
+        } catch {
+          return false;
+        }
+        
+        try {
+          await fs.access(vaultPath);
+          return true;
+        } catch {
+          return false;
+        }
+      }
     } catch (error) {
       return false;
     }
@@ -688,6 +793,28 @@ export class PasswordManager {
   }
 
   /**
+   * Clear WebDAV configuration
+   */
+  async clearWebDAVConfig(): Promise<void> {
+    this.ensureInitialized();
+
+    if (!this.isUnlocked()) {
+      throw new Error('Vault is locked. Please authenticate first.');
+    }
+
+    try {
+      // Clear WebDAV configuration by saving empty config
+      await this.configManager.saveWebDAVConfig({
+        url: '',
+        username: '',
+        password: ''
+      }, this.vaultManager.getMasterKey()!);
+    } catch (error) {
+      throw new Error(`Failed to clear WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Push local vault to remote storage
    * This method uploads local changes to remote storage
    * @param password User password for KDF configuration update if needed
@@ -787,6 +914,15 @@ export class PasswordManager {
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * Test WebDAV connection with provided configuration
+   * @param config WebDAV configuration to test
+   * @returns True if connection is successful, false otherwise
+   */
+  async testWebDAVConnection(config: WebDAVConfig): Promise<boolean> {
+    return await this.syncManager.testWebDAVConnection(config);
   }
 
   /**

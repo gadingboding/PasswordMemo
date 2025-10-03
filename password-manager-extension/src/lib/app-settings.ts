@@ -5,8 +5,6 @@ const STORAGE_KEY = 'app-settings';
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'zh-CN',
   theme: 'system',
-  auto_lock_timeout: 300, // 5 minutes
-  clipboard_clear_timeout: 30, // 30 seconds
   sync_enabled: false,
   auto_sync: false
 };
