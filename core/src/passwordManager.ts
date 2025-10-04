@@ -187,6 +187,7 @@ export class PasswordManager {
 
                 // Derive master key using remote vault's KDF config
                 const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
+                await this.vaultManager.updateSentinel(remoteMasterKeyResult.key)
                 await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
 
                 // Load remote vault into local vault manager
@@ -595,59 +596,6 @@ export class PasswordManager {
   }
 
   /**
-   * Update a template
-   * @param templateId Template ID
-   * @param updates Update content
-   */
-  async updateTemplate(
-    templateId: string,
-    updates: {
-      name?: string;
-      fields?: TemplateField[];
-    }
-  ): Promise<void> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    const vaultUpdates: any = {};
-
-    if (updates.name !== undefined) {
-      vaultUpdates.name = updates.name;
-    }
-
-    if (updates.fields !== undefined) {
-      // Ensure all fields have IDs
-      vaultUpdates.fields = updates.fields.map(field => ({
-        ...field,
-        id: field.id || crypto.randomUUID(),
-        optional: !field.optional // Convert required to optional (opposite boolean)
-      }));
-    }
-
-    await this.vaultManager.updateTemplate(templateId, vaultUpdates);
-  }
-
-  /**
-   * Delete a template
-   * @param templateId Template ID
-   */
-  async deleteTemplate(templateId: string): Promise<void> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    // Note: deleteTemplate is not implemented in VaultManager
-    // We'll need to implement it or remove this functionality
-    // For now, we'll throw an error
-    throw new Error('Template deletion not yet implemented');
-  }
-
-  /**
    * Get all templates list
    */
   async getTemplateList(): Promise<Array<{
@@ -820,9 +768,9 @@ export class PasswordManager {
   /**
    * Push local vault to remote storage
    * This method uploads local changes to remote storage
-   * @param password User password for KDF configuration update if needed
+   * @param password Optional user password for KDF configuration update if needed
    */
-  async push(password: string): Promise<PushResult> {
+  async push(password?: string): Promise<PushResult> {
     this.ensureInitialized();
     await this.initializeWebDAVIfConfigured();
 
@@ -832,11 +780,7 @@ export class PasswordManager {
 
     try {
       const vault = this.vaultManager.getVault();
-      // For push operations, we don't have a merged vault from the result
-      // The KDF configuration update should be handled during pull operations
-      // when remote data is merged with local data
-
-      return await this.syncManager.push(vault);
+      return await this.syncManager.push(vault, password);
     } catch (error) {
       return {
         success: false,
@@ -851,9 +795,9 @@ export class PasswordManager {
   /**
    * Pull remote vault to local
    * This method downloads remote changes and updates the local vault
-   * @param password User password for KDF configuration update if needed
+   * @param password Optional user password for KDF configuration update if needed
    */
-  async pull(password: string): Promise<PullResult> {
+  async pull(password?: string): Promise<PullResult> {
     this.ensureInitialized();
     await this.initializeWebDAVIfConfigured();
 

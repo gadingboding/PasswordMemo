@@ -21,6 +21,8 @@ export interface PushResult {
   conflictsResolved: number;
   /** Timestamp of the push operation */
   timestamp: string;
+  /** Whether password is required for KDF configuration alignment */
+  passwordRequired?: boolean;
 }
 
 /**
@@ -45,6 +47,8 @@ export interface PullResult {
   kdfUpdated?: boolean;
   /** Remote KDF configuration if it was updated */
   remoteKdfConfig?: KDFConfig;
+  /** Whether password is required for KDF configuration alignment */
+  passwordRequired?: boolean;
 }
 
 

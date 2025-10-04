@@ -79,11 +79,63 @@ export function WebDAVSync() {
   }
 
   const handlePush = async () => {
-    setPasswordDialog({ open: true, mode: 'push', error: null })
+    if (!passwordManager) return
+
+    setLoading(true)
+    try {
+      // First try push without password
+      const result = await passwordManager.push()
+      
+      if (result.success) {
+        alert(ready ? t('sync.pushCompleted', { count: result.recordsPushed }) : `Push completed successfully. ${result.recordsPushed} records pushed.`)
+      } else if (result.passwordRequired) {
+        // Show password dialog
+        setPasswordDialog({ open: true, mode: 'push', error: null })
+      } else {
+        alert(ready ? t('sync.pushFailed', { error: result.error }) : `Push failed: ${result.error}`)
+      }
+      
+      const status = passwordManager.getSyncStatus()
+      setSyncStatus(status)
+    } catch (error) {
+      console.error('Failed to push:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(ready ? t('sync.pushFailed', { error: errorMessage }) : `Push failed: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePull = async () => {
-    setPasswordDialog({ open: true, mode: 'pull', error: null })
+    if (!passwordManager) return
+
+    setLoading(true)
+    try {
+      // First try pull without password
+      const result = await passwordManager.pull()
+      
+      if (result.success) {
+        if (result.vaultUpdated) {
+          alert(ready ? t('sync.pullCompleted', { count: result.recordsPulled }) : `Pull completed successfully. ${result.recordsPulled} records pulled and vault updated.`)
+        } else {
+          alert(ready ? t('sync.pullNoChanges') : 'Pull completed successfully. No changes found.')
+        }
+      } else if (result.passwordRequired) {
+        // Show password dialog
+        setPasswordDialog({ open: true, mode: 'pull', error: null })
+      } else {
+        alert(ready ? t('sync.pullFailed', { error: result.error }) : `Pull failed: ${result.error}`)
+      }
+      
+      const status = passwordManager.getSyncStatus()
+      setSyncStatus(status)
+    } catch (error) {
+      console.error('Failed to pull:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert(ready ? t('sync.pullFailed', { error: errorMessage }) : `Pull failed: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePasswordSubmit = async (password: string) => {
@@ -97,8 +149,8 @@ export function WebDAVSync() {
           alert(ready ? t('sync.pushCompleted', { count: result.recordsPushed }) : `Push completed successfully. ${result.recordsPushed} records pushed.`)
           setPasswordDialog({ open: false, mode: 'push', error: null })
         } else {
-          // Check if it's a re-authentication error
-          if (result.error?.includes('Re-authentication failed') || result.error?.includes('Master key validation failed') || result.error?.includes('validation failed')) {
+          // Check if it's a password validation error
+          if (result.error?.includes('Invalid master password')) {
             const errorMessage = 'Incorrect master password. Please check your password and try again.'
             setPasswordDialog({ ...passwordDialog, error: errorMessage })
           } else {
@@ -116,8 +168,8 @@ export function WebDAVSync() {
           }
           setPasswordDialog({ open: false, mode: 'pull', error: null })
         } else {
-          // Check if it's a re-authentication error
-          if (result.error?.includes('Re-authentication failed') || result.error?.includes('Master key validation failed') || result.error?.includes('validation failed')) {
+          // Check if it's a password validation error
+          if (result.error?.includes('Invalid master password')) {
             const errorMessage = 'Incorrect master password. Please check your password and try again.'
             setPasswordDialog({ ...passwordDialog, error: errorMessage })
           } else {
@@ -132,8 +184,8 @@ export function WebDAVSync() {
     } catch (error) {
       console.error(`Failed to ${passwordDialog.mode}:`, error)
       const errorMessage = error instanceof Error ? error.message : String(error)
-      // Check if it's a re-authentication error
-      if (errorMessage.includes('Re-authentication failed') || errorMessage.includes('Master key validation failed') || errorMessage.includes('validation failed')) {
+      // Check if it's a password validation error
+      if (errorMessage.includes('Invalid master password')) {
         const userErrorMessage = 'Incorrect master password. Please check your password and try again.'
         setPasswordDialog({ ...passwordDialog, error: userErrorMessage })
       } else {

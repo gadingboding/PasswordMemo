@@ -92,7 +92,7 @@ class Argon2idStrategy extends KDFAlgorithmStrategy {
     const argon2 = params2 as Argon2idParams;
     return (argon1.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit) === (argon2.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit) &&
       (argon1.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit) === (argon2.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit) &&
-      argon1.keyLength === argon2.keyLength;
+      argon1.keyLength === argon2.keyLength && argon1.salt === argon2.salt;
   }
 }
 

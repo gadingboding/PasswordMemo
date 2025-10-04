@@ -30,8 +30,8 @@ import {STORAGE_KEYS} from './constants.js';
 export class VaultManager {
   private vault: Vault;
   private masterKey: BinaryData | null = null;
-  private environmentManager: EnvironmentManager;
-  private kdfManager: KDFManager;
+  environmentManager: EnvironmentManager;
+  kdfManager: KDFManager;
 
   constructor(vault?: Vault) {
     this.vault = vault || {
@@ -65,13 +65,12 @@ export class VaultManager {
   async setMasterKey(masterKey: BinaryData): Promise<void> {
     this.masterKey = masterKey;
     if (!this.vault.sentinel) {
-      this.vault.sentinel = await CryptographyEngine.createSentinel(this.masterKey);
-    } else {
-      let result = await this.validateMasterKey()
-      if (!result.success) {
-        this.masterKey = null;
-        throw new Error(`Invalid master key: ${result.error}`);
-      }
+      throw new Error('Vault sentinel is missing. Cannot validate master key.');
+    }
+    let result = await this.validateMasterKey()
+    if (!result.success) {
+      this.masterKey = null;
+      throw new Error(`Invalid master key: ${result.error}`);
     }
   }
 
@@ -130,10 +129,41 @@ export class VaultManager {
   }
 
   /**
+   * Validate provided password against sentinel
+   * @param password Password to validate
+   * @returns Validation result
+   */
+  async validatePassword(password: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.vault.kdf) {
+      return {success: false, error: 'KDF configuration not available'};
+    }
+
+    try {
+      // Derive a key from the provided password
+      const tempKeyResult = await this.kdfManager.deriveKey(password, this.vault.kdf);
+
+      // Validate the derived key against the sentinel
+      const validationResult = await CryptographyEngine.validateMasterKey(
+        this.vault.sentinel!,
+        tempKeyResult.key
+      );
+
+      return {
+        success: validationResult.success,
+        error: validationResult.error
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
    * Update sentinel when master key changes
    */
   async updateSentinel(newMasterKey: BinaryData): Promise<void> {
-    // Always create a new sentinel with the new master key
     this.vault.sentinel = await CryptographyEngine.createSentinel(newMasterKey);
   }
 
@@ -760,6 +790,7 @@ export class VaultManager {
 
       // Step 4: Re-encrypt all data with new master key
       await this.reEncryptAllData(decryptedData, newMasterKey);
+      await this.reEncryptWebDAVConfig(currentMasterKey, newMasterKey);
 
       // Step 5: Update sentinel password with new master key
       await this.updateSentinel(newMasterKey);
@@ -774,6 +805,37 @@ export class VaultManager {
 
     } catch (error) {
       throw new Error(`Failed to update KDF configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Re-encrypt WebDAV configuration in user profile with new master key
+   * This method should be called when the master key changes
+   * @param oldMasterKey The old master key used for current encryption
+   * @param newMasterKey The new master key to use for re-encryption
+   */
+  async reEncryptWebDAVConfig(oldMasterKey: BinaryData, newMasterKey: BinaryData): Promise<void> {
+    // Import ConfigurationManager to access user profile
+    const {ConfigurationManager} = await import('./configuration-manager.js');
+    const configManager = new ConfigurationManager();
+    
+    try {
+      // Load current user profile
+      const userProfile = await configManager.loadUserProfile();
+      if (!userProfile || !userProfile.webdav_config) {
+        // No WebDAV configuration to re-encrypt
+        return;
+      }
+
+      // Decrypt WebDAV configuration with old master key
+      const encryptedData = userProfile.webdav_config.encrypted_data;
+      const decryptedConfigJson = await CryptographyEngine.decryptToString(encryptedData, oldMasterKey);
+      
+      // Re-encrypt WebDAV configuration with new master key
+      userProfile.webdav_config.encrypted_data = await CryptographyEngine.encrypt(decryptedConfigJson, newMasterKey);
+      await configManager.saveUserProfile(userProfile);
+    } catch (error) {
+      throw new Error(`Failed to re-encrypt WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -868,14 +930,12 @@ export class VaultManager {
 
     // Re-encrypt all labels
     for (const [labelId, decryptedLabel] of Object.entries(decryptedData.labels)) {
-      const encryptedLabel = await CryptographyEngine.encrypt(JSON.stringify(decryptedLabel), newMasterKey);
-      this.vault.labels[labelId] = encryptedLabel;
+      this.vault.labels[labelId] = await CryptographyEngine.encrypt(JSON.stringify(decryptedLabel), newMasterKey);
     }
 
     // Re-encrypt all templates
     for (const [templateId, decryptedTemplate] of Object.entries(decryptedData.templates)) {
-      const encryptedTemplate = await CryptographyEngine.encrypt(JSON.stringify(decryptedTemplate), newMasterKey);
-      this.vault.templates[templateId] = encryptedTemplate;
+      this.vault.templates[templateId] = await CryptographyEngine.encrypt(JSON.stringify(decryptedTemplate), newMasterKey);
     }
   }
 }
