@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, Lock, Server, Check } from 'lucide-react'
+import { Eye, EyeOff, Lock, Server, Check, AlertCircle } from 'lucide-react'
 import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -28,6 +28,8 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordComplexity, setPasswordComplexity] = useState<any>(null)
+  const [passwordManager] = useState(() => PasswordManager.getInstance())
   
   // Step 1: WebDAV state
   const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>({
@@ -54,6 +56,21 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     }
   ]
 
+  // Check password complexity when password changes
+  useEffect(() => {
+    if (password) {
+      try {
+        const complexity = passwordManager.checkPasswordComplexity(password)
+        setPasswordComplexity(complexity)
+      } catch (error) {
+        console.error('Error checking password complexity:', error)
+        setPasswordComplexity(null)
+      }
+    } else {
+      setPasswordComplexity(null)
+    }
+  }, [password, passwordManager])
+
   const validatePasswordStep = () => {
     if (!password.trim()) {
       alert(ready ? t('initialization.passwordRequired') : 'Master password is required')
@@ -61,6 +78,12 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     }
     if (password !== confirmPassword) {
       alert(ready ? t('initialization.passwordMismatch') : 'Passwords do not match')
+      return false
+    }
+    const complexity = passwordManager.checkPasswordComplexity(password)
+    if (!complexity.isAcceptable) {
+      const errorMessage = `Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`
+      alert(errorMessage)
       return false
     }
     return true
@@ -247,6 +270,69 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
             </Button>
           </div>
         </div>
+        
+        {/* Password Strength Indicator */}
+        {passwordComplexity && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-300">Password Strength</span>
+              <span className={`text-sm font-medium ${
+                passwordComplexity.score <= 1 ? 'text-red-400' :
+                passwordComplexity.score === 2 ? 'text-yellow-400' :
+                passwordComplexity.score === 3 ? 'text-green-400' :
+                'text-emerald-400'
+              }`}>
+                {passwordComplexity.score <= 1 ? 'Very Weak' :
+                 passwordComplexity.score === 2 ? 'Fair' :
+                 passwordComplexity.score === 3 ? 'Good' :
+                 'Strong'}
+              </span>
+            </div>
+            
+            {/* Strength Bar */}
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  passwordComplexity.score <= 1 ? 'bg-red-500' :
+                  passwordComplexity.score === 2 ? 'bg-yellow-500' :
+                  passwordComplexity.score === 3 ? 'bg-green-500' :
+                  'bg-emerald-500'
+                }`}
+                style={{ width: `${(passwordComplexity.score + 1) * 20}%` }}
+              />
+            </div>
+            
+            {/* Warning and Suggestions */}
+            {passwordComplexity.warning.length > 0 && (
+              <div className="flex items-start space-x-2 p-3 bg-red-900/20 border border-red-600/30 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-red-400">
+                  {passwordComplexity.warning.map((warning: string, index: number) => (
+                    <div key={index}>{warning}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {passwordComplexity.suggestions.length > 0 && (
+              <div className="p-3 bg-blue-900/20 border border-blue-600/30 rounded-md">
+                <div className="text-sm text-blue-400">
+                  <div className="font-medium mb-1">Suggestions:</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {passwordComplexity.suggestions.map((suggestion: string, index: number) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            
+            {/* Crack Time */}
+            <div className="text-xs text-slate-400">
+              Estimated crack time: {passwordComplexity.crackTime}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

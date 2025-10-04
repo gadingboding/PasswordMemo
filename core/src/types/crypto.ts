@@ -85,3 +85,28 @@ export interface SentinelValidationResult {
  * This is a simple string that will be encrypted with the master key
  */
 export const DEFAULT_SENTINEL_VALUE = '123456789';
+
+/**
+ * Password strength levels
+ */
+export enum PasswordStrength {
+  VERY_WEAK = 0,
+  WEAK = 1,
+  FAIR = 2,
+  GOOD = 3,
+  STRONG = 4
+}
+
+/**
+ * Password complexity check result
+ */
+export interface PasswordComplexityResult {
+  /** Password strength score (0-4) */
+  score: PasswordStrength;
+  /** Whether the password meets minimum requirements */
+  isAcceptable: boolean;
+  /** Warning messages about the password */
+  warning: string[];
+  /** Suggestions for improving the password */
+  suggestions: string[];
+}

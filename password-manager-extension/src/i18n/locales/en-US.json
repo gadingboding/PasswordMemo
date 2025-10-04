@@ -202,7 +202,14 @@
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "passwordStrength": "Password Strength",
+    "strengthVeryWeak": "Very Weak",
+    "strengthWeak": "Weak",
+    "strengthFair": "Fair",
+    "strengthGood": "Good",
+    "strengthStrong": "Strong",
+    "suggestions": "Suggestions"
   },
   "dashboard": {
     "title": "Dashboard",

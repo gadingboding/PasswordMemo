@@ -13,8 +13,6 @@
     "build:core": "pnpm --filter password-manager-core build",
     "test:core": "pnpm --filter password-manager-core test",
     "lint:core": "pnpm --filter password-manager-core lint",
-    "build:web": "pnpm --filter password-manager-web build",
-    "dev:web": "pnpm --filter password-manager-web dev",
     "build:extension": "pnpm --filter password-manager-extension build",
     "dev:extension": "pnpm --filter password-manager-extension dev",
     "lint:extension": "pnpm --filter password-manager-extension lint"

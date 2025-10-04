@@ -15,7 +15,8 @@ import {
   SyncStatus,
   TemplateField,
   VaultLabel,
-  VaultTemplate
+  VaultTemplate,
+  PasswordComplexityResult
 } from './types/index.js';
 
 
@@ -107,7 +108,7 @@ export class PasswordManager {
       return;
     }
 
-    const { config = {}, masterPassword } = params;
+    const {config = {}, masterPassword} = params;
 
     try {
       // Configure storage
@@ -145,6 +146,11 @@ export class PasswordManager {
         if (!masterPassword) {
           throw new Error('Master password is required for initialization');
         }
+        const complexity = this.checkPasswordComplexity(masterPassword);
+        // Validate password strength
+        if (!complexity.isAcceptable) {
+          throw new Error(`Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`);
+        }
 
         // Initialize vault KDF configuration with a unique salt for KDF
         const kdfSalt = await CryptographyEngine.generateSalt();
@@ -178,11 +184,11 @@ export class PasswordManager {
               if (remoteVault.kdf) {
                 // Use remote vault's KDF configuration
                 this.vaultManager.setKDFConfig(remoteVault.kdf);
-                
+
                 // Derive master key using remote vault's KDF config
                 const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
                 await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
-                
+
                 // Load remote vault into local vault manager
                 this.vaultManager.loadVault(remoteVault);
 
@@ -258,11 +264,14 @@ export class PasswordManager {
    * Check initialization status directly without side effects
    * @private
    */
-  private async checkInitializationStatusDirectly(storageConfig: { basePath?: string; namespace?: string }): Promise<boolean> {
+  private async checkInitializationStatusDirectly(storageConfig: {
+    basePath?: string;
+    namespace?: string
+  }): Promise<boolean> {
     try {
       const environment = this.environmentManager.getEnvironment();
       const namespace = storageConfig.namespace || DEFAULT_STORAGE_NAMESPACE;
-      
+
       if (environment === 'browser') {
         const parts = storageConfig.basePath ? [namespace, storageConfig.basePath] : [namespace];
         const userProfileKey = [...parts, STORAGE_KEYS.USER_PROFILE].join(':');
@@ -270,19 +279,19 @@ export class PasswordManager {
         return localStorage.getItem(userProfileKey) !== null && localStorage.getItem(vaultKey) !== null;
       } else {
         // For Node.js, check file system directly
-        const { join } = await import('path');
-        const { promises: fs } = await import('fs');
-        
+        const {join} = await import('path');
+        const {promises: fs} = await import('fs');
+
         const baseDir = storageConfig.basePath || './data';
         const userProfilePath = join(baseDir, namespace, `${STORAGE_KEYS.USER_PROFILE}.json`);
         const vaultPath = join(baseDir, namespace, `${STORAGE_KEYS.VAULT_DATA}.json`);
-        
+
         try {
           await fs.access(userProfilePath);
         } catch {
           return false;
         }
-        
+
         try {
           await fs.access(vaultPath);
           return true;
@@ -1034,15 +1043,25 @@ export class PasswordManager {
     try {
       // Clear all data from configuration manager
       await this.configManager.clearAll();
-      
+
       // Clear master key from memory
       this.vaultManager.clearMasterKey();
-      
+
       // Mark as uninitialized - don't reset vault data in memory
       // This ensures the system will detect as uninitialized on next check
       this.initialized = false;
     } catch (error) {
       throw new Error(`Failed to reset password manager: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Check password complexity using zxcvbn
+   * @param password The password to check
+   * @param userInputs Optional array of user-specific inputs to exclude from password patterns
+   * @returns Password complexity analysis result
+   */
+  checkPasswordComplexity(password: string, userInputs: string[] = []): PasswordComplexityResult {
+    return CryptographyEngine.checkPasswordComplexity(password, userInputs);
   }
 }

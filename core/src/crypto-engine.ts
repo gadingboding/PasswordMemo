@@ -6,6 +6,7 @@
  */
 
 import _sodium from 'libsodium-wrappers-sumo';
+import zxcvbn from 'zxcvbn';
 import {
   BinaryData,
   Base64String,
@@ -17,7 +18,9 @@ import {
   PADDING_BUCKETS,
   AES_GCM, CHACHA20_POLY1305_IETF,
   SentinelValidationResult,
-  DEFAULT_SENTINEL_VALUE
+  DEFAULT_SENTINEL_VALUE,
+  PasswordComplexityResult,
+  PasswordStrength
 } from './types/index.js';
 
 /**
@@ -86,6 +89,7 @@ export class CryptographyEngine {
       } as ChaCha20Poly1305IETFEncryptedData;
     }
   }
+
   /**
    * Generate cryptographically secure random bytes
    */
@@ -363,4 +367,22 @@ export class CryptographyEngine {
     }
   }
 
+  /**
+   * Check password complexity using zxcvbn
+   * @param password The password to check
+   * @param userInputs Optional array of user-specific inputs to exclude from password patterns
+   * @returns Password complexity analysis result
+   */
+  static checkPasswordComplexity(password: string, userInputs: string[] = []): PasswordComplexityResult {
+    const result = zxcvbn(password, userInputs);
+    const score = result.score as PasswordStrength;
+    const isAcceptable = score >= PasswordStrength.FAIR;
+
+    return {
+      score,
+      isAcceptable,
+      warning: result.feedback.warning ? [result.feedback.warning] : [],
+      suggestions: result.feedback.suggestions || []
+    };
+  }
 }
