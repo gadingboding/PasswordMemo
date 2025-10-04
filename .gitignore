@@ -1,3 +1,8 @@
-node_modules
 .idea
+.roo
+.claude
+.serena
+node_modules
 dist
+/core/tsconfig.tsbuildinfo
+/flow_test

@@ -1,6 +1,0 @@
-{
-  "recordAccessibleAfterSaltUpdate": true,
-  "recordContentMatches": true,
-  "kdfConfigUpdated": true,
-  "vaultRemainsUnlocked": true
-}
