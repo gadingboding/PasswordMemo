@@ -26,7 +26,7 @@ import {CryptographyEngine} from './crypto-engine.js';
 import {SyncManager} from './sync-manager.js';
 import {WebDAVConfig} from './types/vault.js';
 import {KDFManager} from './kdf-manager.js';
-import {DEFAULT_STORAGE_NAMESPACE} from './constants.js';
+import {DEFAULT_STORAGE_NAMESPACE, STORAGE_KEYS} from './constants.js';
 
 /**
  * Password Manager initialization configuration
@@ -261,28 +261,21 @@ export class PasswordManager {
   private async checkInitializationStatusDirectly(storageConfig: { basePath?: string; namespace?: string }): Promise<boolean> {
     try {
       const environment = this.environmentManager.getEnvironment();
-      const namespace = storageConfig.namespace || 'password-manager';
+      const namespace = storageConfig.namespace || DEFAULT_STORAGE_NAMESPACE;
       
       if (environment === 'browser') {
-        // Check localStorage directly without creating storage adapter
-        const userProfileKey = `${namespace}:${storageConfig.basePath || ''}:user-profile`.replace(/:+/g, ':');
-        const vaultKey = `${namespace}:${storageConfig.basePath || ''}:vault`.replace(/:+/g, ':');
-        
-        const userProfileExists = localStorage.getItem(userProfileKey) !== null;
-        if (!userProfileExists) {
-          return false;
-        }
-        
-        const vaultExists = localStorage.getItem(vaultKey) !== null;
-        return vaultExists;
+        const parts = storageConfig.basePath ? [namespace, storageConfig.basePath] : [namespace];
+        const userProfileKey = [...parts, STORAGE_KEYS.USER_PROFILE].join(':');
+        const vaultKey = [...parts, STORAGE_KEYS.VAULT_DATA].join(':');
+        return localStorage.getItem(userProfileKey) !== null && localStorage.getItem(vaultKey) !== null;
       } else {
         // For Node.js, check file system directly
         const { join } = await import('path');
         const { promises: fs } = await import('fs');
         
         const baseDir = storageConfig.basePath || './data';
-        const userProfilePath = join(baseDir, namespace, 'user-profile.json');
-        const vaultPath = join(baseDir, namespace, 'vault.json');
+        const userProfilePath = join(baseDir, namespace, `${STORAGE_KEYS.USER_PROFILE}.json`);
+        const vaultPath = join(baseDir, namespace, `${STORAGE_KEYS.VAULT_DATA}.json`);
         
         try {
           await fs.access(userProfilePath);

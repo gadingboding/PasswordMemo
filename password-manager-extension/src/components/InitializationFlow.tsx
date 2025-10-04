@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, Lock, Server, Check } from 'lucide-react'
-import { PasswordManager } from 'password-manager-core'
+import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -168,7 +168,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
         config: {
           storage: {
             basePath: undefined,
-            namespace: 'password-manager'
+            namespace: DEFAULT_STORAGE_NAMESPACE
           },
           webdav: configureWebDAV ? webdavConfig : undefined,
           pullRemoteVault: configureWebDAV && pullRemoteVault

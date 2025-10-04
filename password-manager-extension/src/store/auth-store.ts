@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           config: {
             storage: {
               basePath: undefined,
-              namespace: 'password-manager'
+              namespace: DEFAULT_STORAGE_NAMESPACE
             }
           }
         })
