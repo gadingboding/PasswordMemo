@@ -15,6 +15,3 @@ export * from './kdf.js';
 
 // Synchronization types
 export * from './sync.js';
-
-// Re-export adapter types for convenience
-export type {IStorageAdapter, BrowserStorageConfig, NodeStorageConfig} from '../environment-manager.js';

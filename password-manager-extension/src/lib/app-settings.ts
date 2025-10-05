@@ -33,7 +33,7 @@ export class AppSettingsManager {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         this.settings = JSON.parse(stored);
-        return this.settings;
+        return this.settings!;
       }
 
       // Return default settings if none exist

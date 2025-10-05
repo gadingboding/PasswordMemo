@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
+import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -28,16 +28,8 @@ export function LoginPage() {
       const manager = PasswordManager.getInstance()
       
       // Use the isInitialized method to check status without full initialization
-      const initialized = await manager.isInitialized({
-        basePath: undefined,
-        namespace: DEFAULT_STORAGE_NAMESPACE
-      })
-      
-      // Log the results for debugging
-      console.log('Initialization status check results:', {
-        initialized
-      })
-      
+      const initialized = await manager.isInitialized()
+
       setIsInitialized(initialized)
     } catch (error) {
       console.error('Failed to check initialization status:', error)

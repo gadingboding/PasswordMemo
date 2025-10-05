@@ -6,24 +6,17 @@
  */
 
 // Export the unified PasswordManager interface
-export {PasswordManager} from './passwordManager.js';
-export type {PasswordManagerConfig, AuthResult, InitializeParams} from './passwordManager.js';
+export {PasswordManager} from './PasswordManager.js';
+export type {PasswordManagerConfig, AuthResult, InitializeParams} from './PasswordManager.js';
 
 // Export core modules and types for advanced usage
 export * from './types/index.js';
-export type {SyncConfig} from './types/sync.js';
 
 // Export core functionality modules for direct access if needed
-export {CryptographyEngine} from './crypto-engine.js';
-export {VaultManager} from './vault-manager.js';
-export * from './configuration-manager.js';
-export {EnvironmentManager} from './environment-manager.js';
-export {SyncManager} from './sync-manager.js';
-export {KDFManager} from './kdf-manager.js';
-export {KDFConfigAPI} from './kdf-config-api.js';
+export {CryptographyEngine} from './CryptoEngine.js';
+export {DataManager} from './DataManager.js';
+export {Sync} from './Sync.js';
+export {KDFAdapter} from './KDFAdapter.js';
 
 // Export constants
-export * from './constants.js';
-
-// Placeholder export to prevent empty module error
-export const VERSION = '1.0.0';
+export * from './Constants.js';

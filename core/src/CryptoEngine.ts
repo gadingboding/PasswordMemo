@@ -8,19 +8,22 @@
 import _sodium from 'libsodium-wrappers-sumo';
 import zxcvbn from 'zxcvbn';
 import {
-  BinaryData,
-  Base64String,
-  EncryptedData,
+  AES_GCM,
   AESGCMEncryptedData,
+  Argon2idParams,
+  Base64String,
+  BinaryData,
+  CHACHA20_POLY1305_IETF,
   ChaCha20Poly1305IETFEncryptedData,
-  PaddedData,
-  PaddingBucketSize,
-  PADDING_BUCKETS,
-  AES_GCM, CHACHA20_POLY1305_IETF,
-  SentinelValidationResult,
+  DEFAULT_KDF_PARAMS,
   DEFAULT_SENTINEL_VALUE,
+  EncryptedData,
+  PaddedData,
+  PADDING_BUCKETS,
+  PaddingBucketSize,
   PasswordComplexityResult,
-  PasswordStrength
+  PasswordStrength,
+  SentinelValidationResult
 } from './types/index.js';
 
 /**
@@ -384,5 +387,21 @@ export class CryptographyEngine {
       warning: result.feedback.warning ? [result.feedback.warning] : [],
       suggestions: result.feedback.suggestions || []
     };
+  }
+
+  static async deriveKeyArgon2id(argon2Params: Argon2idParams, password: string): Promise<BinaryData> {
+    await _sodium.ready;
+    // Convert salt to bytes
+    const saltBytes = await CryptographyEngine.base64ToBytes(argon2Params.salt);
+
+    // Use libsodium's Argon2id for key derivation
+    return _sodium.crypto_pwhash(
+      argon2Params.keyLength, // output length
+      password, // password (string, libsodium handles encoding)
+      saltBytes, // salt
+      argon2Params.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit,
+      argon2Params.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit,
+      _sodium.crypto_pwhash_ALG_ARGON2ID13 // algorithm
+    );
   }
 }

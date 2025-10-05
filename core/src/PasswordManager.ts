@@ -11,23 +11,21 @@ import {
   MasterPassword,
   PullResult,
   PushResult,
-  SyncConfig,
   SyncStatus,
   TemplateField,
   VaultLabel,
   VaultTemplate,
-  PasswordComplexityResult
+  PasswordComplexityResult, Vault
 } from './types/index.js';
 
 
-import {VaultManager} from './vault-manager.js';
-import {ConfigurationManager} from './configuration-manager.js';
-import {EnvironmentManager} from './environment-manager.js';
-import {CryptographyEngine} from './crypto-engine.js';
-import {SyncManager} from './sync-manager.js';
+import {DataManager} from './DataManager.js';
+import {CryptographyEngine} from './CryptoEngine.js';
+import {Sync} from './Sync.js';
 import {WebDAVConfig} from './types/vault.js';
-import {KDFManager} from './kdf-manager.js';
-import {DEFAULT_STORAGE_NAMESPACE, STORAGE_KEYS} from './constants.js';
+import {KDFAdapter} from './KDFAdapter.js';
+import {configLocalStorage} from "./LocalStorage.js";
+import {WebDAVRemoteStorage} from "@/RemoteStorage.js";
 
 /**
  * Password Manager initialization configuration
@@ -55,7 +53,7 @@ export interface InitializeParams {
   /** Configuration */
   config?: PasswordManagerConfig,
   /** Master password for initialization */
-  masterPassword?: MasterPassword
+  masterPassword: MasterPassword
 }
 
 /**
@@ -73,20 +71,16 @@ export interface AuthResult {
  * Unified Password Manager class
  */
 export class PasswordManager {
-  private vaultManager: VaultManager;
-  private configManager: ConfigurationManager;
-  private environmentManager: EnvironmentManager;
-  private syncManager: SyncManager;
-  private kdfManager: KDFManager;
+  private vaultManager: DataManager;
+  private syncManager: Sync;
+  private kdfManager: KDFAdapter;
   private initialized: boolean = false;
   private static instance: PasswordManager | null = null;
 
   private constructor() {
-    this.environmentManager = EnvironmentManager.getInstance();
-    this.vaultManager = new VaultManager();
-    this.configManager = new ConfigurationManager();
-    this.kdfManager = new KDFManager();
-    this.syncManager = new SyncManager(this.configManager, new CryptographyEngine(), this.vaultManager);
+    this.vaultManager = new DataManager();
+    this.kdfManager = new KDFAdapter();
+    this.syncManager = new Sync(this.vaultManager);
   }
 
   /**
@@ -99,11 +93,48 @@ export class PasswordManager {
     return PasswordManager.instance;
   }
 
+  private async initializeLocal(masterPassword: MasterPassword, webdavConfig?: WebDAVConfig): Promise<void> {
+    const kdfSalt = await CryptographyEngine.generateSalt();
+    const kdfConfig = {
+      ...DEFAULT_KDF_CONFIG,
+      params: {
+        ...DEFAULT_KDF_CONFIG.params,
+        salt: kdfSalt
+      }
+    };
+    const masterKeyResult = await this.kdfManager.deriveKey(masterPassword, kdfConfig);
+    await this.vaultManager.updateSentinel(masterKeyResult.key);
+    await this.vaultManager.setMasterKey(masterKeyResult.key);
+    this.vaultManager.setUserProfile({});
+    this.vaultManager.setKDFConfig(kdfConfig);
+    await this.vaultManager.saveUserProfile()
+    await this.vaultManager.saveVault();
+    if (webdavConfig) {
+      await this.vaultManager.setWebDAVConfig(webdavConfig);
+      await this.vaultManager.saveUserProfile();
+    }
+  }
+
+  private async initializeRemote(masterPassword: MasterPassword, webdavConfig: WebDAVConfig, remoteVault: Vault) {
+    // Use remote vault's KDF configuration
+    this.vaultManager.setKDFConfig(remoteVault.kdf);
+
+    // Derive master key using remote vault's KDF config
+    const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
+    await this.vaultManager.updateSentinel(remoteMasterKeyResult.key)
+    await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
+
+    this.vaultManager.setVault(remoteVault);
+    await this.vaultManager.setWebDAVConfig(webdavConfig);
+    await this.vaultManager.saveVault();
+    await this.vaultManager.saveUserProfile();
+  }
+
   /**
    * Initialize the password manager
    * @param params Initialization parameters including config and master password
    */
-  async initialize(params: InitializeParams = {}): Promise<void> {
+  async initialize(params: InitializeParams): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -113,124 +144,32 @@ export class PasswordManager {
     try {
       // Configure storage
       const storageConfig = {
-        baseDir: config.storage?.basePath,
-        namespace: config.storage?.namespace || DEFAULT_STORAGE_NAMESPACE
+        basePath: config.storage?.basePath,
       };
-
-      this.environmentManager.getStorage(storageConfig);
-
-      // Initialize sodium for cryptography
-      // Note: setSodiumReady is imported from index.ts in the test, but not available here
-      // We'll need to ensure sodium is initialized before using the password manager
-
-      const syncConfig: SyncConfig = {
-        maxRetries: 3,
-        retryDelay: 5000
-      };
-      this.syncManager.configureSync(syncConfig);
-
-      // Check if already initialized - if so, just mark as initialized and return
+      configLocalStorage(storageConfig)
       const isAlreadyInitialized = await this.isInitialized();
       if (isAlreadyInitialized) {
         this.initialized = true;
         return;
       }
 
-      // Check if user profile exists
-      const userProfile = await this.configManager.loadUserProfile();
-      const vaultExists = await this.vaultManager.loadVaultFromStorage();
-      const uninitialized = !userProfile || !vaultExists;
-
-      if (uninitialized) {
-        // For new initialization, we need a master password
-        if (!masterPassword) {
-          throw new Error('Master password is required for initialization');
-        }
-        const complexity = this.checkPasswordComplexity(masterPassword);
-        // Validate password strength
-        if (!complexity.isAcceptable) {
-          throw new Error(`Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`);
-        }
-
-        // Initialize vault KDF configuration with a unique salt for KDF
-        const kdfSalt = await CryptographyEngine.generateSalt();
-        const kdfConfig = {
-          ...DEFAULT_KDF_CONFIG,
-          params: {
-            ...DEFAULT_KDF_CONFIG.params,
-            salt: kdfSalt
-          }
-        };
-        this.vaultManager.setKDFConfig(kdfConfig);
-
-        // Derive master key from password
-        const masterKeyResult = await this.kdfManager.deriveKey(masterPassword, kdfConfig);
-        await this.vaultManager.setMasterKey(masterKeyResult.key);
-
-        // Create user profile first before saving WebDAV config
-        await this.configManager.saveUserProfile({});
-
-        // Handle WebDAV configuration if provided
-        if (config.webdav) {
-          // Initialize storage adapter
-          await this.syncManager.initializeStorage(config.webdav);
-
-          // Try to load remote vault if pullRemoteVault is true
-          if (config.pullRemoteVault) {
-            const remoteVault = await this.syncManager['loadRemoteVault']();
-
-            if (remoteVault) {
-              // Remote vault exists, use its KDF configuration and master key
-              if (remoteVault.kdf) {
-                // Use remote vault's KDF configuration
-                this.vaultManager.setKDFConfig(remoteVault.kdf);
-
-                // Derive master key using remote vault's KDF config
-                const remoteMasterKeyResult = await this.kdfManager.deriveKey(masterPassword, remoteVault.kdf);
-                await this.vaultManager.updateSentinel(remoteMasterKeyResult.key)
-                await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
-
-                // Load remote vault into local vault manager
-                this.vaultManager.loadVault(remoteVault);
-
-                // Save remote vault to local storage for offline access
-                await this.vaultManager.saveVault();
-
-                // Save WebDAV configuration with remote master key
-                await this.configManager.saveWebDAVConfig(config.webdav, remoteMasterKeyResult.key);
-              } else {
-                throw new Error('Remote vault does not contain KDF configuration');
-              }
-            } else {
-              // Remote vault doesn't exist, create a new one with local KDF config
-              // Save vault to storage
-              await this.vaultManager.saveVault();
-
-              // Save WebDAV configuration with local master key
-              await this.configManager.saveWebDAVConfig(config.webdav, masterKeyResult.key);
-            }
-          } else {
-            // Don't pull remote vault, just create local vault
-            // Save vault to storage
-            await this.vaultManager.saveVault();
-
-            // Save WebDAV configuration with local master key
-            await this.configManager.saveWebDAVConfig(config.webdav, masterKeyResult.key);
-          }
-        } else {
-          // No WebDAV configuration, just create local vault
-          // Save vault to storage
-          await this.vaultManager.saveVault();
-        }
-      } else {
-        // Already initialized, just set up the environment
-        // Handle WebDAV configuration if provided
-        if (config.webdav) {
-          // Initialize storage adapter
-          await this.syncManager.initializeStorage(config.webdav);
-        }
+      const complexity = this.checkPasswordComplexity(masterPassword);
+      // Validate password strength
+      if (!complexity.isAcceptable) {
+        throw new Error(`Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`);
       }
-
+      // Handle WebDAV configuration if provided
+      if (config.webdav && config.pullRemoteVault) {
+        // Try to load remote vault if pullRemoteVault is true
+        await this.syncManager.initializeStorage(config.webdav)
+        const remoteVault = await this.syncManager.loadRemoteVault();
+        if (!remoteVault || !remoteVault.kdf) {
+          throw new Error('Failed to load remote vault or KDF configuration missing in remote vault');
+        }
+        await this.initializeRemote(masterPassword, config.webdav, remoteVault);
+      } else {
+        await this.initializeLocal(masterPassword, config.webdav);
+      }
       this.initialized = true;
     } catch (error) {
       throw new Error(`Failed to initialize password manager: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -240,69 +179,17 @@ export class PasswordManager {
   /**
    * Check if the password manager is initialized
    * This method can be called before initialization to check status
-   * @param storageConfig Optional storage configuration if not yet initialized
    * @returns True if both vault and user profile exist, false otherwise
    */
-  async isInitialized(storageConfig?: { basePath?: string; namespace?: string }): Promise<boolean> {
+  async isInitialized(): Promise<boolean> {
     try {
-      if (!this.initialized && storageConfig) {
-        // For uninitialized state, check directly without side effects
-        return await this.checkInitializationStatusDirectly(storageConfig);
-      } else {
-        // Already initialized, use existing managers
-        const userProfile = await this.configManager.loadUserProfile();
-        if (!userProfile) {
-          return false;
-        }
-        return await this.vaultManager.loadVaultFromStorage();
-      }
+      await this.vaultManager.loadVault();
+      await this.vaultManager.loadUserProfile();
     } catch (error) {
       return false;
     }
-  }
-
-  /**
-   * Check initialization status directly without side effects
-   * @private
-   */
-  private async checkInitializationStatusDirectly(storageConfig: {
-    basePath?: string;
-    namespace?: string
-  }): Promise<boolean> {
-    try {
-      const environment = this.environmentManager.getEnvironment();
-      const namespace = storageConfig.namespace || DEFAULT_STORAGE_NAMESPACE;
-
-      if (environment === 'browser') {
-        const parts = storageConfig.basePath ? [namespace, storageConfig.basePath] : [namespace];
-        const userProfileKey = [...parts, STORAGE_KEYS.USER_PROFILE].join(':');
-        const vaultKey = [...parts, STORAGE_KEYS.VAULT_DATA].join(':');
-        return localStorage.getItem(userProfileKey) !== null && localStorage.getItem(vaultKey) !== null;
-      } else {
-        // For Node.js, check file system directly
-        const {join} = await import('path');
-        const {promises: fs} = await import('fs');
-
-        const baseDir = storageConfig.basePath || './data';
-        const userProfilePath = join(baseDir, namespace, `${STORAGE_KEYS.USER_PROFILE}.json`);
-        const vaultPath = join(baseDir, namespace, `${STORAGE_KEYS.VAULT_DATA}.json`);
-
-        try {
-          await fs.access(userProfilePath);
-        } catch {
-          return false;
-        }
-
-        try {
-          await fs.access(vaultPath);
-          return true;
-        } catch {
-          return false;
-        }
-      }
-    } catch (error) {
-      return false;
-    }
+    this.initialized = true;
+    return true;
   }
 
   /**
@@ -316,7 +203,6 @@ export class PasswordManager {
   }
 
   async authenticateII(password: MasterPassword): Promise<AuthResult> {
-
     try {
       // Get KDF configuration from vault
       const kdfConfig = this.vaultManager.getKDFConfig();
@@ -343,11 +229,11 @@ export class PasswordManager {
    * @param password Master Password
    */
   async authenticate(password: MasterPassword): Promise<AuthResult> {
-    this.ensureInitialized();
     try {
-      await this.configManager.loadUserProfile();
+      await this.vaultManager.loadUserProfile();
       const authResult = await this.authenticateII(password);
       if (authResult.success) {
+        await this.vaultManager.loadVault();
         await this.vaultManager.loadVaultFromStorage();
       }
       return authResult
@@ -467,7 +353,7 @@ export class PasswordManager {
         throw new Error('Template not found');
       }
 
-      // Prepare update data for VaultManager
+      // Prepare update data for DataManager
       const vaultUpdates: any = {};
 
       if (updates.title !== undefined) {
@@ -596,6 +482,59 @@ export class PasswordManager {
   }
 
   /**
+   * Update a template
+   * @param templateId Template ID
+   * @param updates Update content
+   */
+  async updateTemplate(
+    templateId: string,
+    updates: {
+      name?: string;
+      fields?: TemplateField[];
+    }
+  ): Promise<void> {
+    this.ensureInitialized();
+
+    if (!this.isUnlocked()) {
+      throw new Error('Vault is locked. Please authenticate first.');
+    }
+
+    const vaultUpdates: any = {};
+
+    if (updates.name !== undefined) {
+      vaultUpdates.name = updates.name;
+    }
+
+    if (updates.fields !== undefined) {
+      // Ensure all fields have IDs
+      vaultUpdates.fields = updates.fields.map(field => ({
+        ...field,
+        id: field.id || crypto.randomUUID(),
+        optional: !field.optional // Convert required to optional (opposite boolean)
+      }));
+    }
+
+    await this.vaultManager.updateTemplate(templateId, vaultUpdates);
+  }
+
+  /**
+   * Delete a template
+   * @param templateId Template ID
+   */
+  async deleteTemplate(templateId: string): Promise<void> {
+    this.ensureInitialized();
+
+    if (!this.isUnlocked()) {
+      throw new Error('Vault is locked. Please authenticate first.');
+    }
+
+    // Note: deleteTemplate is not implemented in DataManager
+    // We'll need to implement it or remove this functionality
+    // For now, we'll throw an error
+    throw new Error('Template deletion not yet implemented');
+  }
+
+  /**
    * Get all templates list
    */
   async getTemplateList(): Promise<Array<{
@@ -708,20 +647,6 @@ export class PasswordManager {
 
   // === SETTINGS MANAGEMENT ===
   /**
-   * Configure sync settings
-   * @param config Sync configuration
-   */
-  async configureSync(config: SyncConfig): Promise<void> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    this.syncManager.configureSync(config);
-  }
-
-  /**
    * Configure WebDAV settings
    * @param webdavConfig WebDAV configuration
    */
@@ -733,11 +658,8 @@ export class PasswordManager {
     }
 
     try {
-      // Save WebDAV configuration
-      await this.configManager.saveWebDAVConfig(webdavConfig, this.vaultManager.getMasterKey()!);
-
-      // Initialize WebDAV client
-      await this.syncManager.initializeStorage(webdavConfig);
+      await this.vaultManager.setWebDAVConfig(webdavConfig);
+      await this.vaultManager.saveUserProfile();
     } catch (error) {
       throw new Error(`Failed to configure WebDAV: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -755,11 +677,12 @@ export class PasswordManager {
 
     try {
       // Clear WebDAV configuration by saving empty config
-      await this.configManager.saveWebDAVConfig({
+      await this.vaultManager.setWebDAVConfig({
         url: '',
         username: '',
         password: ''
-      }, this.vaultManager.getMasterKey()!);
+      });
+      await this.vaultManager.saveUserProfile();
     } catch (error) {
       throw new Error(`Failed to clear WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -773,10 +696,6 @@ export class PasswordManager {
   async push(password?: string): Promise<PushResult> {
     this.ensureInitialized();
     await this.initializeWebDAVIfConfigured();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
 
     try {
       const vault = this.vaultManager.getVault();
@@ -800,11 +719,6 @@ export class PasswordManager {
   async pull(password?: string): Promise<PullResult> {
     this.ensureInitialized();
     await this.initializeWebDAVIfConfigured();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
     try {
       const vault = this.vaultManager.getVault();
       const result = await this.syncManager.pull(vault, password);
@@ -812,7 +726,7 @@ export class PasswordManager {
       // If vault was updated, load the merged vault into local vault manager
       if (result.success && result.vaultUpdated && result.mergedVault) {
         // Load the merged vault data
-        this.vaultManager.loadVault(result.mergedVault);
+        this.vaultManager.setVault(result.mergedVault);
 
         // Save the updated vault
         await this.vaultManager.saveVault();
@@ -843,19 +757,8 @@ export class PasswordManager {
    * Get current WebDAV configuration (decrypted)
    */
   async getWebDAVConfig(): Promise<WebDAVConfig | null> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
     try {
-      const masterKey = this.vaultManager.getMasterKey();
-      if (!masterKey) {
-        return null;
-      }
-
-      return await this.configManager.loadWebDAVConfig(masterKey);
+      return await this.vaultManager.getWebDAVConfig();
     } catch (error) {
       return null;
     }
@@ -876,10 +779,7 @@ export class PasswordManager {
    */
   private async initializeWebDAVIfConfigured(): Promise<void> {
     try {
-      const webdavConfig = await this.getWebDAVConfig();
-      if (webdavConfig) {
-        await this.syncManager.initializeStorage(webdavConfig);
-      }
+      await this.syncManager.initializeStorage();
     } catch (error) {
       // Silently ignore WebDAV initialization errors on startup
       console.warn('Failed to initialize WebDAV on unlock:', error);
@@ -887,112 +787,14 @@ export class PasswordManager {
   }
 
   // === UTILITY METHODS ===
-
-  /**
-   * Save vault data to storage
-   * This method allows manual saving of the current vault state
-   */
-  async saveVault(): Promise<void> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    try {
-      await this.vaultManager.saveVault();
-    } catch (error) {
-      throw new Error(`Failed to save vault: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Load vault data from storage
-   * This method allows manual loading of vault data from storage
-   * @returns True if vault data was loaded successfully, false if no data exists
-   */
-  async loadVault(): Promise<boolean> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    try {
-      return await this.vaultManager.loadVaultFromStorage();
-    } catch (error) {
-      throw new Error(`Failed to load vault: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Get the current vault data (raw encrypted format)
-   * @returns Current vault data
-   */
-  getVaultData(): any {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    return this.vaultManager.getVault();
-  }
-
-  /**
-   * Load vault data from a provided vault object
-   * @param vaultData Vault data to load
-   */
-  loadVaultData(vaultData: any): void {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    this.vaultManager.loadVault(vaultData);
-  }
-
-  /**
-   * Export vault data
-   * @param password Export password
-   */
-  async exportVault(password: string): Promise<string> {
-    this.ensureInitialized();
-
-    if (!this.isUnlocked()) {
-      throw new Error('Vault is locked. Please authenticate first.');
-    }
-
-    // TODO: Implement vault export
-    throw new Error('Vault export not yet implemented');
-  }
-
-  /**
-   * Import vault data
-   * @param encryptedData Encrypted vault data
-   * @param password Import password
-   */
-  async importVault(encryptedData: string, password: string): Promise<void> {
-    this.ensureInitialized();
-    // TODO: Implement vault import
-    throw new Error('Vault import not yet implemented');
-  }
-
   /**
    * Reset all data (vault and user profile)
    * This will completely wipe all stored data and reset the password manager to initial state
    */
   async reset(): Promise<void> {
     try {
-      // Clear all data from configuration manager
-      await this.configManager.clearAll();
-
-      // Clear master key from memory
+      await this.vaultManager.clearData();
       this.vaultManager.clearMasterKey();
-
-      // Mark as uninitialized - don't reset vault data in memory
-      // This ensures the system will detect as uninitialized on next check
       this.initialized = false;
     } catch (error) {
       throw new Error(`Failed to reset password manager: ${error instanceof Error ? error.message : 'Unknown error'}`);

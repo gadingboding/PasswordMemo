@@ -52,17 +52,6 @@ export interface PullResult {
 }
 
 
-
-/**
- * Sync configuration
- */
-export interface SyncConfig {
-  /** Maximum number of retry attempts */
-  maxRetries: number;
-  /** Retry delay in milliseconds */
-  retryDelay: number;
-}
-
 /**
  * Sync status
  */

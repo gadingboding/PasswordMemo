@@ -14,24 +14,23 @@ import {
   EncryptedData,
   KDFConfig,
   TemplateField,
+  UserProfile,
   Vault,
-  VaultLabel,
-  VaultRecord,
-  VaultTemplate
+  VaultLabel, VaultRecord,
+  VaultTemplate, WebDAVConfig
 } from './types/index.js';
-import {CryptographyEngine} from './crypto-engine.js';
-import {EnvironmentManager, IStorageAdapter} from './environment-manager.js';
-import {KDFManager} from './kdf-manager.js';
-import {STORAGE_KEYS} from './constants.js';
+import {CryptographyEngine} from './CryptoEngine.js';
+import {KDFAdapter} from './KDFAdapter.js';
+import {LocalUserProfileFile, LocalVaultFile} from "./LocalStorage.js";
 
 /**
  * Vault Manager class
  */
-export class VaultManager {
-  private vault: Vault;
+export class DataManager {
+  vault: Vault;
+  userProfile: UserProfile = {};
   private masterKey: BinaryData | null = null;
-  environmentManager: EnvironmentManager;
-  kdfManager: KDFManager;
+  kdfManager: KDFAdapter;
 
   constructor(vault?: Vault) {
     this.vault = vault || {
@@ -47,16 +46,7 @@ export class VaultManager {
         }
       }
     };
-    this.environmentManager = EnvironmentManager.getInstance();
-    this.kdfManager = new KDFManager();
-  }
-
-  /**
-   * Get the storage adapter
-   * @private
-   */
-  private get storage(): IStorageAdapter {
-    return this.environmentManager.getStorage();
+    this.kdfManager = new KDFAdapter();
   }
 
   /**
@@ -175,10 +165,36 @@ export class VaultManager {
   }
 
   /**
+   * Set vault data
+   */
+  setVault(vault: Vault): void {
+    this.vault = vault;
+  }
+
+  /**
+   * Set User Profile
+   */
+  setUserProfile(userProfile: UserProfile): void {
+    this.userProfile = userProfile;
+  }
+
+  /**
    * Load vault data
    */
-  loadVault(vault: Vault): void {
-    this.vault = vault;
+  async loadVault() {
+    let vaultData = await LocalVaultFile.read();
+    if (!vaultData) {
+      throw new Error('No vault data found in storage');
+    }
+    this.vault = JSON.parse(vaultData);
+  }
+
+  async loadUserProfile() {
+    let userProfileData = await LocalUserProfileFile.read();
+    if (!userProfileData) {
+      throw new Error('No vault data found in storage');
+    }
+    this.userProfile = JSON.parse(userProfileData);
   }
 
   /**
@@ -186,9 +202,20 @@ export class VaultManager {
    */
   async saveVault(): Promise<void> {
     try {
-      await this.storage.write(STORAGE_KEYS.VAULT_DATA, JSON.stringify(this.vault));
+      await LocalVaultFile.write(JSON.stringify(this.vault));
     } catch (error) {
       throw new Error(`Failed to save vault data: ${error}`);
+    }
+  }
+
+  /**
+   * Save User Profile to storage
+   */
+  async saveUserProfile(): Promise<void> {
+    try {
+      await LocalUserProfileFile.write(JSON.stringify(this.userProfile));
+    } catch (error) {
+      throw new Error(`Failed to save User Profile: ${error}`);
     }
   }
 
@@ -197,7 +224,7 @@ export class VaultManager {
    */
   async loadVaultFromStorage(): Promise<boolean> {
     try {
-      const vaultData = await this.storage.read(STORAGE_KEYS.VAULT_DATA);
+      const vaultData = await LocalVaultFile.read();
       if (vaultData) {
         this.vault = JSON.parse(vaultData);
         return true;
@@ -231,11 +258,10 @@ export class VaultManager {
     const encryptedFields: Record<string, EncryptedData> = {};
 
     for (const [fieldId, value] of Object.entries(fields)) {
-      const encrypted = await CryptographyEngine.encrypt(value, this.masterKey);
-      encryptedFields[fieldId] = encrypted;
+      encryptedFields[fieldId] = await CryptographyEngine.encrypt(value, this.masterKey);
     }
 
-    const record: VaultRecord = {
+    this.vault.records[recordId] = {
       last_modified: now,
       deleted: false,
       local_only: false,
@@ -244,8 +270,6 @@ export class VaultManager {
       title: encryptedTitle,
       fields: encryptedFields,
     };
-
-    this.vault.records[recordId] = record;
 
     // Save vault data after modification
     await this.saveVault();
@@ -275,22 +299,8 @@ export class VaultManager {
     let templateFields: TemplateField[] = [];
 
     if (templateData) {
-      // 检查 templateData 是否已经是 EncryptedData 对象
-      let encryptedTemplate: EncryptedData;
-      if (typeof templateData === 'string') {
-        // 如果是字符串，尝试解析为 JSON
-        try {
-          encryptedTemplate = JSON.parse(templateData);
-        } catch (parseError) {
-          return null;
-        }
-      } else {
-        // 如果已经是对象，直接使用
-        encryptedTemplate = templateData as EncryptedData;
-      }
-
       try {
-        const templateJson = await CryptographyEngine.decryptToString(encryptedTemplate, this.masterKey);
+        const templateJson = await CryptographyEngine.decryptToString(templateData, this.masterKey);
         const template: VaultTemplate = JSON.parse(templateJson);
         templateFields = template.fields;
       } catch (error) {
@@ -351,16 +361,14 @@ export class VaultManager {
 
     // Update title if provided
     if (updates.title !== undefined) {
-      const encryptedTitle = await CryptographyEngine.encrypt(updates.title, this.masterKey);
-      record.title = encryptedTitle;
+      record.title = await CryptographyEngine.encrypt(updates.title, this.masterKey);
     }
 
     // Update fields if provided
     if (updates.fields !== undefined) {
       const encryptedFields: Record<string, EncryptedData> = {};
       for (const [fieldId, value] of Object.entries(updates.fields)) {
-        const encrypted = await CryptographyEngine.encrypt(value, this.masterKey);
-        encryptedFields[fieldId] = encrypted;
+        encryptedFields[fieldId] = await CryptographyEngine.encrypt(value, this.masterKey);
       }
       record.fields = encryptedFields;
     }
@@ -444,16 +452,13 @@ export class VaultManager {
       })),
     };
 
-    const encryptedTemplate = await CryptographyEngine.encrypt(
+    this.vault.templates[templateId] = await CryptographyEngine.encrypt(
       JSON.stringify(template),
       this.masterKey
     );
 
-    this.vault.templates[templateId] = encryptedTemplate;
-
     // Save vault data after modification
     await this.saveVault();
-
     return templateId;
   }
 
@@ -473,18 +478,7 @@ export class VaultManager {
     if (!encryptedTemplate) {
       return null;
     }
-
-    // 检查 encryptedTemplate 是否已经是 EncryptedData 对象
-    let templateData: EncryptedData;
-    if (typeof encryptedTemplate === 'string') {
-      // 如果是字符串，尝试解析为 JSON
-      templateData = JSON.parse(encryptedTemplate);
-    } else {
-      // 如果已经是对象，直接使用
-      templateData = encryptedTemplate as EncryptedData;
-    }
-
-    const templateJson = await CryptographyEngine.decryptToString(templateData, this.masterKey);
+    const templateJson = await CryptographyEngine.decryptToString(encryptedTemplate, this.masterKey);
     const template: VaultTemplate = JSON.parse(templateJson);
 
     return {
@@ -508,22 +502,8 @@ export class VaultManager {
 
     const templates = [];
     for (const [templateId, encryptedTemplate] of Object.entries(this.vault.templates)) {
-      // 检查 encryptedTemplate 是否已经是 EncryptedData 对象
-      let templateData: EncryptedData;
-      if (typeof encryptedTemplate === 'string') {
-        // 如果是字符串，尝试解析为 JSON
-        try {
-          templateData = JSON.parse(encryptedTemplate);
-        } catch (parseError) {
-          continue; // Skip this template and continue with others
-        }
-      } else {
-        // 如果已经是对象，直接使用
-        templateData = encryptedTemplate as EncryptedData;
-      }
-
       try {
-        const templateJson = await CryptographyEngine.decryptToString(templateData, this.masterKey);
+        const templateJson = await CryptographyEngine.decryptToString(encryptedTemplate, this.masterKey);
         const template: VaultTemplate = JSON.parse(templateJson);
 
         templates.push({
@@ -532,7 +512,7 @@ export class VaultManager {
           fieldCount: template.fields.length,
         });
       } catch (error) {
-        continue; // Skip this template and continue with others
+        // Skip this template and continue with others
       }
     }
 
@@ -554,18 +534,7 @@ export class VaultManager {
     if (!encryptedTemplate) {
       throw new Error('Template not found');
     }
-
-    // 检查 encryptedTemplate 是否已经是 EncryptedData 对象
-    let templateData: EncryptedData;
-    if (typeof encryptedTemplate === 'string') {
-      // 如果是字符串，尝试解析为 JSON
-      templateData = JSON.parse(encryptedTemplate);
-    } else {
-      // 如果已经是对象，直接使用
-      templateData = encryptedTemplate as EncryptedData;
-    }
-
-    const templateJson = await CryptographyEngine.decryptToString(templateData, this.masterKey);
+    const templateJson = await CryptographyEngine.decryptToString(encryptedTemplate, this.masterKey);
     const template: VaultTemplate = JSON.parse(templateJson);
 
     if (updates.name !== undefined) {
@@ -576,12 +545,10 @@ export class VaultManager {
       template.fields = updates.fields;
     }
 
-    const newEncryptedTemplate = await CryptographyEngine.encrypt(
+    this.vault.templates[templateId] = await CryptographyEngine.encrypt(
       JSON.stringify(template),
       this.masterKey
     );
-
-    this.vault.templates[templateId] = newEncryptedTemplate;
     await this.saveVault();
   }
 
@@ -598,12 +565,10 @@ export class VaultManager {
     const labelId = uuidv4();
     const label: VaultLabel = {name, color};
 
-    const encryptedLabel = await CryptographyEngine.encrypt(
+    this.vault.labels[labelId] = await CryptographyEngine.encrypt(
       JSON.stringify(label),
       this.masterKey
     );
-
-    this.vault.labels[labelId] = encryptedLabel;
 
     // Save vault data after modification
     await this.saveVault();
@@ -628,19 +593,8 @@ export class VaultManager {
       return null;
     }
 
-    // 检查 encryptedLabel 是否已经是 EncryptedData 对象
-    let labelData: EncryptedData;
-    if (typeof encryptedLabel === 'string') {
-      // 如果是字符串，尝试解析为 JSON
-      labelData = JSON.parse(encryptedLabel);
-    } else {
-      // 如果已经是对象，直接使用
-      labelData = encryptedLabel as EncryptedData;
-    }
-
-    const labelJson = await CryptographyEngine.decryptToString(labelData, this.masterKey);
+    const labelJson = await CryptographyEngine.decryptToString(encryptedLabel, this.masterKey);
     const label: VaultLabel = JSON.parse(labelJson);
-
     return {
       id: labelId,
       name: label.name,
@@ -662,17 +616,7 @@ export class VaultManager {
 
     const labels = [];
     for (const [labelId, encryptedLabel] of Object.entries(this.vault.labels)) {
-      // 检查 encryptedLabel 是否已经是 EncryptedData 对象
-      let labelData: EncryptedData;
-      if (typeof encryptedLabel === 'string') {
-        // 如果是字符串，尝试解析为 JSON
-        labelData = JSON.parse(encryptedLabel);
-      } else {
-        // 如果已经是对象，直接使用
-        labelData = encryptedLabel as EncryptedData;
-      }
-
-      const labelJson = await CryptographyEngine.decryptToString(labelData, this.masterKey);
+      const labelJson = await CryptographyEngine.decryptToString(encryptedLabel, this.masterKey);
       const label: VaultLabel = JSON.parse(labelJson);
 
       labels.push({
@@ -720,17 +664,7 @@ export class VaultManager {
       throw new Error('Label not found');
     }
 
-    // 检查 encryptedLabel 是否已经是 EncryptedData 对象
-    let labelData: EncryptedData;
-    if (typeof encryptedLabel === 'string') {
-      // 如果是字符串，尝试解析为 JSON
-      labelData = JSON.parse(encryptedLabel);
-    } else {
-      // 如果已经是对象，直接使用
-      labelData = encryptedLabel as EncryptedData;
-    }
-
-    const labelJson = await CryptographyEngine.decryptToString(labelData, this.masterKey);
+    const labelJson = await CryptographyEngine.decryptToString(encryptedLabel, this.masterKey);
     const label: VaultLabel = JSON.parse(labelJson);
 
     if (updates.name !== undefined) {
@@ -741,12 +675,10 @@ export class VaultManager {
       label.color = updates.color;
     }
 
-    const newEncryptedLabel = await CryptographyEngine.encrypt(
+    this.vault.labels[labelId] = await CryptographyEngine.encrypt(
       JSON.stringify(label),
       this.masterKey
     );
-
-    this.vault.labels[labelId] = newEncryptedLabel;
     await this.saveVault();
   }
 
@@ -755,54 +687,22 @@ export class VaultManager {
    * @returns true if KDF configuration was updated, false if no update was needed
    */
   async updateKDFConfig(newConfig: KDFConfig, password: string): Promise<boolean> {
-    if (!this.isUnlocked()) {
-      throw new Error('Vault must be unlocked to update KDF configuration');
-    }
-
-    // Validate new KDF configuration
-    const validation = this.kdfManager.validateConfig(newConfig);
-    if (!validation.valid) {
-      throw new Error(`Invalid KDF configuration: ${validation.errors?.join(', ')}`);
-    }
-
-    const currentMasterKey = this.getMasterKey();
-    if (!currentMasterKey) {
-      throw new Error('Master key not available');
-    }
-
-    // Check if KDF configurations are the same
     const currentConfig = this.getKDFConfig();
-    if (currentConfig && JSON.stringify(currentConfig) === JSON.stringify(newConfig)) {
-      // Configurations are the same, no need to update
+    if (currentConfig && this.kdfManager.areConfigsCompatible(currentConfig, newConfig)) {
       return false;
     }
+    let currentMasterKey = this.masterKey!;
+    let newMasterKey = (await this.kdfManager.deriveKey(password, newConfig)).key;
 
     try {
-      // Step 1: Decrypt all existing data with current master key
-      const decryptedData = await this.decryptAllData(currentMasterKey);
-
-      // Step 2: Update KDF configuration in vault
       this.setKDFConfig(newConfig);
-
-      // Step 3: Generate new master key with new KDF configuration and password
-      const newMasterKeyResult = await this.kdfManager.deriveKey(password, newConfig);
-      const newMasterKey = newMasterKeyResult.key;
-
-      // Step 4: Re-encrypt all data with new master key
-      await this.reEncryptAllData(decryptedData, newMasterKey);
+      await this.reEncryptAllDataWithNewKey(currentMasterKey, newMasterKey);
       await this.reEncryptWebDAVConfig(currentMasterKey, newMasterKey);
-
-      // Step 5: Update sentinel password with new master key
       await this.updateSentinel(newMasterKey);
-
-      // Step 6: Update current master key
       await this.setMasterKey(newMasterKey);
-
-      // Step 7: Save vault with new configuration and re-encrypted data
       await this.saveVault();
-
+      await this.saveUserProfile();
       return true; // KDF configuration was updated
-
     } catch (error) {
       throw new Error(`Failed to update KDF configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -815,127 +715,94 @@ export class VaultManager {
    * @param newMasterKey The new master key to use for re-encryption
    */
   async reEncryptWebDAVConfig(oldMasterKey: BinaryData, newMasterKey: BinaryData): Promise<void> {
-    // Import ConfigurationManager to access user profile
-    const {ConfigurationManager} = await import('./configuration-manager.js');
-    const configManager = new ConfigurationManager();
-    
     try {
-      // Load current user profile
-      const userProfile = await configManager.loadUserProfile();
-      if (!userProfile || !userProfile.webdav_config) {
+      // Check if WebDAV configuration exists
+      if (!this.userProfile.webdav_config) {
         // No WebDAV configuration to re-encrypt
         return;
       }
 
       // Decrypt WebDAV configuration with old master key
-      const encryptedData = userProfile.webdav_config.encrypted_data;
+      const encryptedData = this.userProfile.webdav_config.encrypted_data;
       const decryptedConfigJson = await CryptographyEngine.decryptToString(encryptedData, oldMasterKey);
-      
+
       // Re-encrypt WebDAV configuration with new master key
-      userProfile.webdav_config.encrypted_data = await CryptographyEngine.encrypt(decryptedConfigJson, newMasterKey);
-      await configManager.saveUserProfile(userProfile);
+      this.userProfile.webdav_config.encrypted_data = await CryptographyEngine.encrypt(decryptedConfigJson, newMasterKey);
     } catch (error) {
       throw new Error(`Failed to re-encrypt WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Decrypt all vault data
+   * Re-encrypt all vault data with new master key by decrypting and re-encrypting each field
+   * This method directly operates on the vault data without storing all decrypted data in memory
    */
-  private async decryptAllData(masterKey: BinaryData): Promise<{
-    records: Record<string, any>;
-    labels: Record<string, any>;
-    templates: Record<string, any>;
-  }> {
-    const decryptedData: {
-      records: Record<string, any>;
-      labels: Record<string, any>;
-      templates: Record<string, any>;
-    } = {
-      records: {},
-      labels: {},
-      templates: {}
-    };
-
-    // Decrypt all records
+  private async reEncryptAllDataWithNewKey(oldMasterKey: BinaryData, newMasterKey: BinaryData): Promise<void> {
+    let records: Record<string, VaultRecord> = {}
     for (const [recordId, record] of Object.entries(this.vault.records)) {
-      const decryptedRecord = {
-        ...record,
-        title: await CryptographyEngine.decryptToString(record.title, masterKey),
-        fields: {} as Record<string, string>
-      };
+      // Decrypt and re-encrypt title
+      const decryptedTitle = await CryptographyEngine.decryptToString(record.title, oldMasterKey);
+      const encryptedTitle = await CryptographyEngine.encrypt(decryptedTitle, newMasterKey);
 
-      for (const [fieldId, encryptedField] of Object.entries(record.fields)) {
-        decryptedRecord.fields[fieldId] = await CryptographyEngine.decryptToString(encryptedField, masterKey);
-      }
-
-      decryptedData.records[recordId] = decryptedRecord;
-    }
-
-    // Decrypt all labels
-    for (const [labelId, encryptedLabel] of Object.entries(this.vault.labels)) {
-      let labelData: EncryptedData;
-      if (typeof encryptedLabel === 'string') {
-        labelData = JSON.parse(encryptedLabel);
-      } else {
-        labelData = encryptedLabel as EncryptedData;
-      }
-
-      const labelJson = await CryptographyEngine.decryptToString(labelData, masterKey);
-      decryptedData.labels[labelId] = JSON.parse(labelJson);
-    }
-
-    // Decrypt all templates
-    for (const [templateId, encryptedTemplate] of Object.entries(this.vault.templates)) {
-      let templateData: EncryptedData;
-      if (typeof encryptedTemplate === 'string') {
-        templateData = JSON.parse(encryptedTemplate);
-      } else {
-        templateData = encryptedTemplate as EncryptedData;
-      }
-
-      const templateJson = await CryptographyEngine.decryptToString(templateData, masterKey);
-      decryptedData.templates[templateId] = JSON.parse(templateJson);
-    }
-
-    return decryptedData;
-  }
-
-  /**
-   * Re-encrypt all vault data with new master key
-   */
-  private async reEncryptAllData(
-    decryptedData: {
-      records: Record<string, any>;
-      labels: Record<string, any>;
-      templates: Record<string, any>;
-    },
-    newMasterKey: BinaryData
-  ): Promise<void> {
-    // Re-encrypt all records
-    for (const [recordId, decryptedRecord] of Object.entries(decryptedData.records)) {
-      const encryptedTitle = await CryptographyEngine.encrypt(decryptedRecord.title, newMasterKey);
+      // Decrypt and re-encrypt fields
       const encryptedFields: Record<string, EncryptedData> = {};
-
-      for (const [fieldId, fieldValue] of Object.entries(decryptedRecord.fields)) {
-        encryptedFields[fieldId] = await CryptographyEngine.encrypt(fieldValue as string, newMasterKey);
+      for (const [fieldId, encryptedField] of Object.entries(record.fields)) {
+        const decryptedFieldValue = await CryptographyEngine.decryptToString(encryptedField, oldMasterKey);
+        encryptedFields[fieldId] = await CryptographyEngine.encrypt(decryptedFieldValue, newMasterKey);
       }
 
-      this.vault.records[recordId] = {
-        ...decryptedRecord,
+      // Update record with re-encrypted data
+      records[recordId] = {
+        ...record,
         title: encryptedTitle,
         fields: encryptedFields
       };
     }
+    this.vault.records = records;
 
-    // Re-encrypt all labels
-    for (const [labelId, decryptedLabel] of Object.entries(decryptedData.labels)) {
-      this.vault.labels[labelId] = await CryptographyEngine.encrypt(JSON.stringify(decryptedLabel), newMasterKey);
+    let labels: Record<string, EncryptedData> = {};
+    for (const [labelId, encryptedLabel] of Object.entries(this.vault.labels)) {
+      const decryptedLabelJson = await CryptographyEngine.decryptToString(encryptedLabel, oldMasterKey);
+      labels[labelId] = await CryptographyEngine.encrypt(decryptedLabelJson, newMasterKey);
     }
+    this.vault.labels = labels;
 
-    // Re-encrypt all templates
-    for (const [templateId, decryptedTemplate] of Object.entries(decryptedData.templates)) {
-      this.vault.templates[templateId] = await CryptographyEngine.encrypt(JSON.stringify(decryptedTemplate), newMasterKey);
+
+    let templates: Record<string, EncryptedData> = {};
+    for (const [templateId, encryptedTemplate] of Object.entries(this.vault.templates)) {
+      const decryptedTemplateJson = await CryptographyEngine.decryptToString(encryptedTemplate, oldMasterKey);
+      templates[templateId] = await CryptographyEngine.encrypt(decryptedTemplateJson, newMasterKey);
+    }
+    this.vault.templates = templates;
+  }
+
+  async clearData() {
+    // this.vault = null
+    // this.userProfile = null
+    await LocalVaultFile.remove()
+    await LocalUserProfileFile.remove()
+  }
+
+  async getWebDAVConfig(): Promise<WebDAVConfig | null> {
+    try {
+      const encryptedData = this.userProfile.webdav_config?.encrypted_data!;
+      const decryptedData = await CryptographyEngine.decryptToString(encryptedData, this.masterKey!);
+      return JSON.parse(decryptedData) as WebDAVConfig;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Save WebDAV configuration (encrypted)
+   */
+  async setWebDAVConfig(config: WebDAVConfig): Promise<void> {
+    try {
+      const configJson = JSON.stringify(config);
+      const encryptedData = await CryptographyEngine.encrypt(configJson, this.masterKey!);
+      this.userProfile.webdav_config = {encrypted_data: encryptedData};
+    } catch (error) {
+      throw new Error('Failed to save WebDAV configuration');
     }
   }
 }

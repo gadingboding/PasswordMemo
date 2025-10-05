@@ -16,7 +16,7 @@ import {
   DerivedKey,
   KDFParamsBase,
 } from './types/index.js';
-import {CryptographyEngine} from './crypto-engine.js';
+import {CryptographyEngine} from './CryptoEngine.js';
 import _sodium from 'libsodium-wrappers-sumo';
 
 /**
@@ -65,23 +65,7 @@ class Argon2idStrategy extends KDFAlgorithmStrategy {
   }
 
   async deriveKey(password: string, params: KDFParamsBase): Promise<DerivedKey> {
-    await _sodium.ready; // 确保 libsodium 已初始化
-
-    const argon2Params = params as Argon2idParams;
-
-    // Convert salt to bytes
-    const saltBytes = await CryptographyEngine.base64ToBytes(argon2Params.salt);
-
-    // Use libsodium's Argon2id for key derivation
-    const derivedKey = _sodium.crypto_pwhash(
-      argon2Params.keyLength, // output length
-      password, // password (string, libsodium handles encoding)
-      saltBytes, // salt
-      argon2Params.opslimit || DEFAULT_KDF_PARAMS.argon2id.opslimit,
-      argon2Params.memlimit || DEFAULT_KDF_PARAMS.argon2id.memlimit,
-      _sodium.crypto_pwhash_ALG_ARGON2ID13 // algorithm
-    );
-
+    const derivedKey = await CryptographyEngine.deriveKeyArgon2id(params as Argon2idParams, password);
     return {
       key: derivedKey,
     };
@@ -99,7 +83,7 @@ class Argon2idStrategy extends KDFAlgorithmStrategy {
 /**
  * KDF Configuration Manager
  */
-export class KDFManager {
+export class KDFAdapter {
   private algorithmStrategies: Map<KDFAlgorithm, KDFAlgorithmStrategy>;
 
   constructor() {
@@ -149,33 +133,6 @@ export class KDFManager {
     }
 
     return errors.length === 0 ? {valid: true} : {valid: false, errors};
-  }
-
-  /**
-   * Generate a random salt for key derivation
-   */
-  async generateSalt(): Promise<Base64String> {
-    return CryptographyEngine.generateSalt();
-  }
-
-  /**
-   * Create default KDF configuration for the specified algorithm
-   */
-  async createDefaultConfig(algorithm: KDFAlgorithm): Promise<KDFConfig> {
-    const salt = await this.generateSalt();
-
-    switch (algorithm) {
-      case 'argon2id':
-        return {
-          algorithm: 'argon2id',
-          params: {
-            salt,
-            ...DEFAULT_KDF_PARAMS.argon2id
-          } as Argon2idParams
-        };
-      default:
-        throw new Error(`Unsupported algorithm: ${algorithm}`);
-    }
   }
 
   /**

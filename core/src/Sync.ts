@@ -7,57 +7,41 @@
 
 import {v4 as uuidv4} from 'uuid';
 import {Vault, WebDAVConfig} from './types/vault.js';
-import {PullResult, PushResult, SyncConfig, SyncStatus} from './types/sync.js';
-import {CryptographyEngine} from './crypto-engine.js';
-import {ConfigurationManager} from './configuration-manager.js';
-import {VaultManager} from './vault-manager.js';
-import {IRemoteStorage, WebDAVRemoteStorage} from './remoteStorage.js';
+import {PullResult, PushResult, SyncStatus} from './types/sync.js';
+import {DataManager} from './DataManager.js';
+import {IRemoteStorage, WebDAVRemoteStorage} from './RemoteStorage.js';
 
 /**
  * Sync Manager for handling synchronization
  */
-export class SyncManager {
+export class Sync {
   private storageAdapter: IRemoteStorage | null = null;
-  private vaultManager: VaultManager;
+  private vaultManager: DataManager;
+  private webdavConfig: WebDAVConfig | null = null;
   private syncStatus: SyncStatus = {
     syncing: false,
     pendingChanges: 0
   };
-  private syncConfig: SyncConfig = {
-    maxRetries: 3,
-    retryDelay: 5000 // 5 seconds
-  };
-  private webdavConfig: WebDAVConfig | null = null;
 
-  constructor(
-    configManager: ConfigurationManager,
-    cryptoEngine: CryptographyEngine,
-    vaultManager: VaultManager
-  ) {
+  constructor(vaultManager: DataManager) {
     this.vaultManager = vaultManager;
   }
 
   /**
    * Initialize storage adapter with configuration
    */
-  async initializeStorage(config: WebDAVConfig): Promise<void> {
+  async initializeStorage(config?: WebDAVConfig): Promise<void> {
     try {
+      if (!config) {
+        config = (await this.vaultManager.getWebDAVConfig())!;
+      }
       this.webdavConfig = config;
       this.storageAdapter = new WebDAVRemoteStorage(config);
-
-      // Test connection by checking if the root directory exists
-      await this.storageAdapter.exists('/');
     } catch (error) {
       throw new Error(`Storage connection failed: ${error}`);
     }
   }
 
-  /**
-   * Configure synchronization settings
-   */
-  configureSync(config: Partial<SyncConfig>): void {
-    this.syncConfig = {...this.syncConfig, ...config};
-  }
 
   /**
    * Get current synchronization status
@@ -70,7 +54,6 @@ export class SyncManager {
    * Generate a new sync version ID (similar to git commit ID)
    */
   private generateSyncVersionId(): string {
-    // Generate a UUID and take first 8 characters for compactness
     return uuidv4().substring(0, 8);
   }
 
@@ -151,51 +134,45 @@ export class SyncManager {
   }
 
   /**
-   * Get WebDAV file path from configuration
+   * Get WebDAV paths from configuration
+   * @returns Object containing both file path and directory path
    */
-  private getWebDAVFilePath(): string {
+  private getWebDAVPaths(): { filePath: string; directoryPath: string } {
     if (!this.webdavConfig) {
       throw new Error('WebDAV configuration not initialized');
     }
 
     // Use custom path if provided, otherwise default to '/password-manager/vault.json'
+    let filePath: string;
     const customPath = this.webdavConfig.path;
     if (customPath) {
       // Normalize path - ensure it starts with a slash
-      return customPath.startsWith('/') ? customPath : `/${customPath}`;
+      filePath = customPath.startsWith('/') ? customPath : `/${customPath}`;
+    } else {
+      filePath = '/password-manager/vault.json';
     }
-
-    return '/password-manager/vault.json';
-  }
-
-  /**
-   * Get WebDAV directory path from configuration
-   */
-  private getWebDAVDirectory(): string {
-    if (!this.webdavConfig) {
-      throw new Error('WebDAV configuration not initialized');
-    }
-
-    const filePath = this.getWebDAVFilePath();
 
     // Extract directory from file path
     const lastSlashIndex = filePath.lastIndexOf('/');
+    let directoryPath: string;
     if (lastSlashIndex <= 0) {
-      return ''; // Root directory
+      directoryPath = ''; // Root directory
+    } else {
+      directoryPath = filePath.substring(0, lastSlashIndex);
     }
 
-    return filePath.substring(0, lastSlashIndex);
+    return { filePath, directoryPath };
   }
 
   /**
    * Load vault from remote storage
    */
-  private async loadRemoteVault(): Promise<Vault | null> {
+  async loadRemoteVault(): Promise<Vault | null> {
     if (!this.storageAdapter) {
       throw new Error('Storage adapter not initialized');
     }
 
-    const vaultPath = this.getWebDAVFilePath();
+    const { filePath: vaultPath } = this.getWebDAVPaths();
 
     try {
       // Try to download the file
@@ -215,13 +192,12 @@ export class SyncManager {
   /**
    * Save vault to remote storage
    */
-  private async saveRemoteVault(vault: Vault): Promise<void> {
+  async saveRemoteVault(vault: Vault): Promise<void> {
     if (!this.storageAdapter) {
       throw new Error('Storage adapter not initialized');
     }
 
-    const vaultPath = this.getWebDAVFilePath();
-    const directoryPath = this.getWebDAVDirectory();
+    const { filePath: vaultPath, directoryPath } = this.getWebDAVPaths();
 
     try {
       const vaultJson = JSON.stringify(vault, null, 2);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Lock, Eye, EyeOff } from 'lucide-react'
-import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
+import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -28,10 +28,7 @@ export function LockOverlay() {
       const manager = PasswordManager.getInstance()
       
       // Use the isInitialized method to check status without full initialization
-      const initialized = await manager.isInitialized({
-        basePath: undefined,
-        namespace: DEFAULT_STORAGE_NAMESPACE
-      })
+      const initialized = await manager.isInitialized()
       
       setIsInitialized(initialized)
     } catch (error) {

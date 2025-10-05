@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
+import { PasswordManager } from 'password-manager-core'
 
 interface AuthState {
   isAuthenticated: boolean
@@ -29,21 +29,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const manager = PasswordManager.getInstance()
 
       // Check if already initialized
-      const isInitialized = await manager.isInitialized({
-        basePath: undefined,
-        namespace: DEFAULT_STORAGE_NAMESPACE
-      })
+      const isInitialized = await manager.isInitialized()
 
       if (isInitialized) {
-        // Already initialized, just initialize and authenticate
-        await manager.initialize({
-          config: {
-            storage: {
-              basePath: undefined,
-              namespace: DEFAULT_STORAGE_NAMESPACE
-            }
-          }
-        })
         const result = await manager.authenticate(password)
         if (result.success) {
           set({
