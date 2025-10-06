@@ -69,7 +69,6 @@
   "labels": {
     "title": "标签",
     "name": "标签名称",
-    "color": "颜色",
     "createLabel": "创建标签",
     "editLabel": "编辑标签",
     "deleteLabel": "删除标签",
@@ -284,7 +283,6 @@
     "labelDetails": "标签详情",
     "labelName": "标签名称",
     "labelNamePlaceholder": "输入标签名称",
-    "color": "颜色",
     "preview": "预览：",
     "labelNamePreview": "标签名称",
     "creating": "创建中...",

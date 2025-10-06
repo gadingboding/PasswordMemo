@@ -69,7 +69,6 @@
   "labels": {
     "title": "Labels",
     "name": "Label Name",
-    "color": "Color",
     "createLabel": "Create Label",
     "editLabel": "Edit Label",
     "deleteLabel": "Delete Label",
@@ -284,7 +283,6 @@
     "labelDetails": "Label Details",
     "labelName": "Label Name",
     "labelNamePlaceholder": "Enter label name",
-    "color": "Color",
     "preview": "Preview:",
     "labelNamePreview": "Label name",
     "creating": "Creating...",

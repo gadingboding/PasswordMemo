@@ -57,8 +57,6 @@ export interface VaultRecord extends SyncableRecord {
 export interface VaultLabel {
   /** Display name of the label */
   name: string;
-  /** Color code for the label (hex format) */
-  color: string;
 }
 
 /**

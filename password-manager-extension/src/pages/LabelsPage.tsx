@@ -84,10 +84,7 @@ export function LabelsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="flex items-center text-white text-base">
-                      <div
-                        className="w-4 h-4 rounded-full mr-2 flex-shrink-0"
-                        style={{ backgroundColor: label.color }}
-                      />
+                      <Tag className="w-4 h-4 mr-2 flex-shrink-0 text-slate-400" />
                       <span className="truncate">{label.name}</span>
                     </CardTitle>
                   </div>

@@ -151,13 +151,9 @@ export function RecordsPage() {
                     }}
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm transition-all ${
                       isSelected
-                        ? 'ring-2 ring-offset-2 ring-offset-slate-900 font-medium'
-                        : 'opacity-70 hover:opacity-100'
+                        ? 'ring-2 ring-offset-2 ring-offset-slate-900 font-medium bg-blue-600 text-white'
+                        : 'opacity-70 hover:opacity-100 bg-slate-700 text-slate-300'
                     }`}
-                    style={{
-                      backgroundColor: label.color + (isSelected ? '40' : '20'),
-                      color: label.color
-                    }}
                   >
                     {label.name}
                     {isSelected && <X className="h-3 w-3 ml-1" />}
@@ -237,8 +233,7 @@ export function RecordsPage() {
                             return label ? (
                               <span
                                 key={labelId}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
-                                style={{ backgroundColor: label.color + '20', color: label.color }}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300"
                               >
                                 {label.name}
                               </span>
@@ -354,8 +349,7 @@ export function RecordsPage() {
                     return label ? (
                       <span
                         key={labelId}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs"
-                        style={{ backgroundColor: label.color + '20', color: label.color }}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-700 text-slate-300"
                       >
                         {label.name}
                       </span>

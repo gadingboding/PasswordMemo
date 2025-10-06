@@ -556,16 +556,15 @@ export class PasswordManager {
   /**
    * Create a label
    * @param name Label name
-   * @param color Label color (hex format)
    */
-  async createLabel(name: string, color: string): Promise<string> {
+  async createLabel(name: string): Promise<string> {
     this.ensureInitialized();
 
     if (!this.isUnlocked()) {
       throw new Error('Vault is locked. Please authenticate first.');
     }
 
-    return await this.vaultManager.createLabel(name, color);
+    return await this.vaultManager.createLabel(name);
   }
 
   /**
@@ -586,8 +585,7 @@ export class PasswordManager {
     }
 
     return {
-      name: label.name,
-      color: label.color
+      name: label.name
     };
   }
 
@@ -600,7 +598,6 @@ export class PasswordManager {
     labelId: string,
     updates: {
       name?: string;
-      color?: string;
     }
   ): Promise<void> {
     this.ensureInitialized();
@@ -640,8 +637,7 @@ export class PasswordManager {
 
     return labels.map(label => ({
       id: label.id,
-      name: label.name,
-      color: label.color
+      name: label.name
     }));
   }
 

@@ -557,13 +557,13 @@ export class DataManager {
   /**
    * Create a new label
    */
-  async createLabel(name: string, color: string): Promise<string> {
+  async createLabel(name: string): Promise<string> {
     if (!this.masterKey) {
       throw new Error('Vault is locked. Master key required.');
     }
 
     const labelId = uuidv4();
-    const label: VaultLabel = {name, color};
+    const label: VaultLabel = {name};
 
     this.vault.labels[labelId] = await CryptographyEngine.encrypt(
       JSON.stringify(label),
@@ -582,7 +582,6 @@ export class DataManager {
   async getLabel(labelId: string): Promise<{
     id: string;
     name: string;
-    color: string;
   } | null> {
     if (!this.masterKey) {
       throw new Error('Vault is locked. Master key required.');
@@ -598,7 +597,6 @@ export class DataManager {
     return {
       id: labelId,
       name: label.name,
-      color: label.color,
     };
   }
 
@@ -608,7 +606,6 @@ export class DataManager {
   async getLabelList(): Promise<Array<{
     id: string;
     name: string;
-    color: string;
   }>> {
     if (!this.masterKey) {
       throw new Error('Vault is locked. Master key required.');
@@ -622,7 +619,6 @@ export class DataManager {
       labels.push({
         id: labelId,
         name: label.name,
-        color: label.color,
       });
     }
 
@@ -653,7 +649,7 @@ export class DataManager {
    */
   async updateLabel(
     labelId: string,
-    updates: { name?: string; color?: string }
+    updates: { name?: string }
   ): Promise<void> {
     if (!this.masterKey) {
       throw new Error('Vault is locked. Master key required.');
@@ -669,10 +665,6 @@ export class DataManager {
 
     if (updates.name !== undefined) {
       label.name = updates.name;
-    }
-
-    if (updates.color !== undefined) {
-      label.color = updates.color;
     }
 
     this.vault.labels[labelId] = await CryptographyEngine.encrypt(

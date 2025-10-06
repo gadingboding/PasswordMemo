@@ -10,15 +10,7 @@ import { useToastContext } from '@/contexts/ToastContext'
 
 interface LabelFormData {
   name: string
-  color: string
 }
-
-const PRESET_COLORS = [
-  '#ef4444', '#f97316', '#f59e0b', '#eab308',
-  '#84cc16', '#22c55e', '#10b981', '#06b6d4',
-  '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6',
-  '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
-]
 
 export function CreateLabelPage() {
   const { t } = useTranslation()
@@ -27,8 +19,7 @@ export function CreateLabelPage() {
   const { showError } = useToastContext()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<LabelFormData>({
-    name: '',
-    color: PRESET_COLORS[0]
+    name: ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +31,7 @@ export function CreateLabelPage() {
 
     setLoading(true)
     try {
-      await passwordManager.createLabel(formData.name.trim(), formData.color)
+      await passwordManager.createLabel(formData.name.trim())
       navigate('/labels')
     } catch (error) {
       console.error('Failed to create label:', error)
@@ -89,45 +80,6 @@ export function CreateLabelPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-200 mb-3">
-                {t('labelForm.color')}
-              </label>
-              <div className="grid grid-cols-8 gap-3">
-                {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
-                      formData.color === color
-                        ? 'border-white scale-110 shadow-lg'
-                        : 'border-slate-600 hover:border-slate-400 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setFormData({ ...formData, color })}
-                  />
-                ))}
-              </div>
-              
-              {/* Preview */}
-              <div className="mt-4 p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
-                <div className="text-xs text-slate-300 mb-1">{t('labelForm.preview')}</div>
-                <span
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                  style={{ 
-                    backgroundColor: formData.color + '20', 
-                    color: formData.color,
-                    border: `1px solid ${formData.color}40`
-                  }}
-                >
-                  <div
-                    className="w-2 h-2 rounded-full mr-2"
-                    style={{ backgroundColor: formData.color }}
-                  />
-                  {formData.name || t('labelForm.labelNamePreview')}
-                </span>
-              </div>
-            </div>
 
             <div className="flex justify-end space-x-3 pt-6">
               <Button

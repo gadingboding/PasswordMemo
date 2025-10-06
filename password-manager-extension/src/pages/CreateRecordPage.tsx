@@ -261,8 +261,7 @@ export function CreateRecordPage() {
                         className="rounded border-slate-600 bg-slate-700"
                       />
                       <span
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs"
-                        style={{ backgroundColor: label.color + '20', color: label.color }}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-700 text-slate-300"
                       >
                         {label.name}
                       </span>
