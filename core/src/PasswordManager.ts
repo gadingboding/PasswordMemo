@@ -25,7 +25,7 @@ import {Sync} from './Sync.js';
 import {WebDAVConfig} from './types/vault.js';
 import {KDFAdapter} from './KDFAdapter.js';
 import {configLocalStorage} from "./LocalStorage.js";
-import {WebDAVRemoteStorage} from "@/RemoteStorage.js";
+import {WebDAVPermissions, createPermissions} from './Permissions.js';
 
 /**
  * Password Manager initialization configuration

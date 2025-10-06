@@ -6,7 +6,6 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Stepper } from '@/components/ui/Stepper'
-import { webdavPermissions } from '@/utils/permissions'
 import { useToastContext } from '@/contexts/ToastContext'
 
 interface InitializationFlowProps {
@@ -129,17 +128,6 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     setConnectionError('')
     
     try {
-      // Request WebDAV permissions first
-      const hasPermission = await webdavPermissions.check(webdavConfig.url)
-      if (!hasPermission) {
-        const granted = await webdavPermissions.request(webdavConfig.url)
-        if (!granted) {
-          setConnectionTestResult('error')
-          setConnectionError(ready ? t('sync.webdavPermissionRequired') : 'Cross-origin permission required')
-          return
-        }
-      }
-
       // Test connection using the singleton PasswordManager instance
       const tempManager = PasswordManager.getInstance()
       const isConnected = await tempManager.testWebDAVConnection(webdavConfig)

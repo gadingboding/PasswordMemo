@@ -6,6 +6,7 @@
  */
 
 import {WebDAVConfig} from './types/vault.js';
+import {WebDAVPermissionError, createPermissions} from './Permissions.js';
 
 /**
  * Remote storage interface
@@ -87,6 +88,12 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
   private async initializeClient(): Promise<void> {
     if (this.client) {
       return;
+    }
+
+    // Ensure permissions are granted before initializing the client
+    const hasPermission = await createPermissions().ensurePermissions(this.config.url);
+    if (!hasPermission) {
+      throw new WebDAVPermissionError('WebDAV cross-origin permission required');
     }
 
     const {createClient} = await import('webdav');

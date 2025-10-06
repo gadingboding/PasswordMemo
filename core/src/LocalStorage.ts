@@ -1,20 +1,6 @@
 import {STORAGE_KEYS} from "./Constants.js";
+import {detectEnvironment, EnvType} from "./utils.js";
 
-const enum EnvType {
-  BROWSER = 'browser',
-  NODE = 'node'
-}
-
-function detectEnvironment(): EnvType {
-  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-    return EnvType.NODE;
-  }
-
-  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    return EnvType.BROWSER;
-  }
-  return EnvType.BROWSER;
-}
 
 
 /**
