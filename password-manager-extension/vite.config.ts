@@ -9,8 +9,7 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'popup.html'),
         options: resolve(__dirname, 'options.html'),
-        content: resolve(__dirname, 'src/content.ts'),
-        background: resolve(__dirname, 'src/background.ts')
+        content: resolve(__dirname, 'src/content.ts')
       },
       output: {
         entryFileNames: '[name].js',
