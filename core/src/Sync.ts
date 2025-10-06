@@ -161,7 +161,94 @@ export class Sync {
       directoryPath = filePath.substring(0, lastSlashIndex);
     }
 
-    return { filePath, directoryPath };
+    return {filePath, directoryPath};
+  }
+
+  /**
+   * 对齐本地和远程KDF配置
+   * @param remoteVault 远程保险库
+   * @param localVault 本地保险库
+   * @param password 用户密码
+   * @returns 对齐结果
+   */
+  private async alignKdfConfigurations(
+    remoteVault: Vault,
+    localVault: Vault,
+    password?: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    passwordRequired?: boolean;
+  }> {
+    const remoteKdfConfig = remoteVault.kdf;
+    const localKdfConfig = localVault.kdf!;
+
+    if (!remoteKdfConfig || this.vaultManager.kdfManager.areConfigsCompatible(remoteKdfConfig, localKdfConfig)) {
+      return {success: true};
+    }
+
+    if (!password) {
+      return {
+        success: false,
+        error: 'Password required for KDF configuration alignment',
+        passwordRequired: true
+      };
+    }
+
+    try {
+      await this.vaultManager.updateKDFConfig(remoteKdfConfig, password);
+      return {success: true};
+    } catch (kdfError) {
+      return {
+        success: false,
+        error: `KDF configuration update failed: ${kdfError instanceof Error ? kdfError.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * 处理本地和远程保险库的历史关系
+   * @param localVault 本地保险库
+   * @param remoteVault 远程保险库
+   * @returns 处理结果
+   */
+  private async handleHistoryRelationship(
+    localVault: Vault,
+    remoteVault: Vault
+  ): Promise<{
+    mergedVault: Vault;
+    conflictsResolved: number;
+    vaultUpdated: boolean;
+  }> {
+    const localHistory = localVault.history || [];
+    const remoteHistory = remoteVault.history || [];
+
+    // 统一的合并逻辑
+    let mergedVault: Vault;
+    let conflictsResolved = 0;
+    let vaultUpdated = false;
+
+    if (this.isHistoryPrefix(localHistory, remoteHistory)) {
+      // 本地是远程前缀 - 远程有新变更
+      mergedVault = remoteVault;
+      vaultUpdated = true;
+    } else if (this.isHistoryPrefix(remoteHistory, localHistory)) {
+      // 远程是本地前缀 - 本地有新变更
+      mergedVault = localVault;
+      vaultUpdated = false; // 合并逻辑不负责判断是否需要更新
+    } else {
+      // 分支历史 - 需要合并
+      const mergeResult = await this.mergeVaults(localVault, remoteVault);
+      mergedVault = mergeResult.mergedVault;
+      conflictsResolved = mergeResult.conflictsResolved;
+      vaultUpdated = true;
+    }
+
+    return {
+      mergedVault,
+      conflictsResolved,
+      vaultUpdated
+    };
   }
 
   /**
@@ -172,7 +259,7 @@ export class Sync {
       throw new Error('Storage adapter not initialized');
     }
 
-    const { filePath: vaultPath } = this.getWebDAVPaths();
+    const {filePath: vaultPath} = this.getWebDAVPaths();
 
     try {
       // Try to download the file
@@ -197,7 +284,7 @@ export class Sync {
       throw new Error('Storage adapter not initialized');
     }
 
-    const { filePath: vaultPath, directoryPath } = this.getWebDAVPaths();
+    const {filePath: vaultPath, directoryPath} = this.getWebDAVPaths();
 
     try {
       const vaultJson = JSON.stringify(vault, null, 2);
@@ -271,90 +358,31 @@ export class Sync {
         };
       }
 
-      // Check if KDF configuration alignment is needed
-      const remoteKdfConfig = remoteVault.kdf;
-      const localKdfConfig = localVault.kdf!;
-      let kdfUpdated = false;
-
-      if (remoteKdfConfig && !this.vaultManager.kdfManager.areConfigsCompatible(remoteKdfConfig, localKdfConfig)) {
-        // KDF configurations are different, need to align them
-        if (!password) {
-          return {
-            success: false,
-            error: 'Password required for KDF configuration alignment',
-            recordsPushed: 0,
-            conflictsResolved: 0,
-            timestamp: new Date().toISOString(),
-            passwordRequired: true
-          };
-        }
-
-        try {
-          // First validate the provided password using sentinel
-          const validationResult = await this.vaultManager.validatePassword(password);
-
-          if (!validationResult.success) {
-            return {
-              success: false,
-              error: 'Invalid master password',
-              recordsPushed: 0,
-              conflictsResolved: 0,
-              timestamp: new Date().toISOString()
-            };
-          }
-
-          // Update KDF configuration to match remote
-          kdfUpdated = await this.vaultManager.updateKDFConfig(remoteKdfConfig, password);
-
-          if (kdfUpdated) {
-            // After KDF update, reload the local vault to get the updated state
-            await this.vaultManager.loadVaultFromStorage();
-            localVault = this.vaultManager.getVault();
-          }
-        } catch (kdfError) {
-          return {
-            success: false,
-            error: `KDF configuration update failed: ${kdfError instanceof Error ? kdfError.message : 'Unknown error'}`,
-            recordsPushed: 0,
-            conflictsResolved: 0,
-            timestamp: new Date().toISOString()
-          };
-        }
+      // KDF configuration alignment
+      const kdfResult = await this.alignKdfConfigurations(remoteVault, localVault, password);
+      if (!kdfResult.success) {
+        return {
+          success: false,
+          error: kdfResult.error,
+          recordsPushed: 0,
+          conflictsResolved: 0,
+          timestamp: new Date().toISOString(),
+          passwordRequired: kdfResult.passwordRequired
+        };
       }
 
-      // Generate new sync version ID
-      const newVersionId = this.generateSyncVersionId();
-      let finalVault = localVault;
-      let conflictsResolved = 0;
+      // Handle history relationship
+      const historyResult = await this.handleHistoryRelationship(this.vaultManager.getVault(), remoteVault);
+      let finalVault = historyResult.mergedVault;
+      const conflictsResolved = historyResult.conflictsResolved;
 
-      // Check history relationship
-      const localHistory = localVault.history || [];
-      const remoteHistory = remoteVault.history || [];
-
-      // Handle different history scenarios
-      if (this.isHistoryPrefix(remoteHistory, localHistory)) {
-        // Remote is a prefix of local - local is newer, push it
+      // Push操作：添加新版本ID并推送
+      if (historyResult.vaultUpdated || this.isHistoryPrefix(remoteVault.history || [], localVault.history || [])) {
+        const newVersionId = this.generateSyncVersionId();
         finalVault = {
-          ...localVault,
-          history: [...localHistory, newVersionId]
+          ...finalVault,
+          history: [...(finalVault.history || []), newVersionId]
         };
-      } else if (this.isHistoryPrefix(localHistory, remoteHistory)) {
-        // Local is a prefix of remote - remote is newer, conflict
-        // For push, we still push local but note the conflict
-        const mergeResult = await this.mergeVaults(localVault, remoteVault);
-        finalVault = {
-          ...mergeResult.mergedVault,
-          history: [...localHistory, newVersionId]
-        };
-        conflictsResolved = mergeResult.conflictsResolved;
-      } else {
-        // Divergent histories - merge and push
-        const mergeResult = await this.mergeVaults(localVault, remoteVault);
-        finalVault = {
-          ...mergeResult.mergedVault,
-          history: [...localHistory, newVersionId]
-        };
-        conflictsResolved = mergeResult.conflictsResolved;
       }
 
       // Save merged vault to remote
@@ -425,73 +453,32 @@ export class Sync {
         };
       }
 
-      // Step 2: Check if KDF configuration alignment is needed
-      const remoteKdfConfig = remoteVault.kdf;
-      const localKdfConfig = localVault.kdf!;
-      let kdfUpdated = false;
-      if (remoteKdfConfig && !this.vaultManager.kdfManager.areConfigsCompatible(remoteKdfConfig, localKdfConfig)) {
-        // KDF configurations are different, need to align them
-        if (!password) {
-          return {
-            success: false,
-            error: 'Password required for KDF configuration alignment',
-            recordsPulled: 0,
-            conflictsResolved: 0,
-            vaultUpdated: false,
-            timestamp: new Date().toISOString(),
-            passwordRequired: true
-          };
-        }
-
-        try {
-          kdfUpdated = await this.vaultManager.updateKDFConfig(remoteKdfConfig, password);
-
-          if (kdfUpdated) {
-            // After KDF update, reload the local vault to get the updated state
-            await this.vaultManager.loadVaultFromStorage();
-            // Use the updated local vault for merging
-            localVault = this.vaultManager.getVault();
-          }
-        } catch (kdfError) {
-          return {
-            success: false,
-            error: `KDF configuration update failed: ${kdfError instanceof Error ? kdfError.message : 'Unknown error'}`,
-            recordsPulled: 0,
-            conflictsResolved: 0,
-            vaultUpdated: false,
-            timestamp: new Date().toISOString()
-          };
-        }
+      // KDF configuration alignment
+      const kdfResult = await this.alignKdfConfigurations(remoteVault, localVault, password);
+      if (!kdfResult.success) {
+        return {
+          success: false,
+          error: kdfResult.error,
+          recordsPulled: 0,
+          conflictsResolved: 0,
+          vaultUpdated: false,
+          timestamp: new Date().toISOString(),
+          passwordRequired: kdfResult.passwordRequired
+        };
       }
 
-      // Step 3: Check history relationship and merge
-      const localHistory = localVault.history || [];
-      const remoteHistory = remoteVault.history || [];
+      // Handle history relationship
+      const historyResult = await this.handleHistoryRelationship(this.vaultManager.getVault(), remoteVault);
+      let finalVault = historyResult.mergedVault;
+      const conflictsResolved = historyResult.conflictsResolved;
+      let vaultUpdated = historyResult.vaultUpdated;
 
-      let finalVault = localVault;
-      let conflictsResolved = 0;
-      let vaultUpdated = false;
-
-      if (this.isHistoryPrefix(localHistory, remoteHistory)) {
-        // Local is a prefix of remote - remote is newer, use it
+      // Pull操作：保持远程历史
+      if (vaultUpdated) {
         finalVault = {
-          ...remoteVault,
-          history: [...remoteHistory] // Keep remote history as is
+          ...finalVault,
+          history: [...(remoteVault.history || [])]
         };
-        vaultUpdated = true;
-      } else if (this.isHistoryPrefix(remoteHistory, localHistory)) {
-        // Remote is a prefix of local - local is newer, nothing to pull
-        finalVault = localVault;
-        vaultUpdated = false;
-      } else {
-        // Divergent histories - merge
-        const mergeResult = await this.mergeVaults(localVault, remoteVault);
-        finalVault = {
-          ...mergeResult.mergedVault,
-          history: [...remoteHistory] // Use remote history after pull
-        };
-        conflictsResolved = mergeResult.conflictsResolved;
-        vaultUpdated = true;
       }
 
       // Step 4: Update sync status
@@ -506,9 +493,6 @@ export class Sync {
         timestamp: this.syncStatus.lastSync,
         // Include the merged vault for the caller to update local storage
         mergedVault: vaultUpdated ? finalVault : undefined,
-        // Include KDF update information
-        kdfUpdated,
-        remoteKdfConfig: kdfUpdated ? remoteKdfConfig : undefined
       } as PullResult;
     } catch (error) {
       this.syncStatus.syncing = false;

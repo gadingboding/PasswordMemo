@@ -5,7 +5,6 @@
  */
 
 import {Vault} from './vault.js';
-import {KDFConfig} from './kdf.js';
 
 /**
  * Push operation result (local to remote)
@@ -43,10 +42,6 @@ export interface PullResult {
   vaultUpdated: boolean;
   /** Merged vault data if vault was updated */
   mergedVault?: Vault;
-  /** Whether KDF configuration was updated */
-  kdfUpdated?: boolean;
-  /** Remote KDF configuration if it was updated */
-  remoteKdfConfig?: KDFConfig;
   /** Whether password is required for KDF configuration alignment */
   passwordRequired?: boolean;
 }
