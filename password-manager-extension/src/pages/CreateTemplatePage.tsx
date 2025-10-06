@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import type { TemplateField } from 'password-manager-core'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface ExtendedTemplateField extends TemplateField {
   required?: boolean
@@ -30,6 +31,7 @@ export function CreateTemplatePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const FIELD_TYPES = getFieldTypes(t)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<TemplateFormData>({
@@ -62,7 +64,7 @@ export function CreateTemplatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.name.trim() || formData.fields.some(f => !f.name.trim())) {
-      alert(t('templateForm.pleaseFillRequiredFields'))
+      showError(t('templateForm.pleaseFillRequiredFields'))
       return
     }
 
@@ -79,7 +81,7 @@ export function CreateTemplatePage() {
       navigate('/templates')
     } catch (error) {
       console.error('Failed to create template:', error)
-      alert(t('templateForm.failedToCreateTemplate'))
+      showError(t('templateForm.failedToCreateTemplate'))
     } finally {
       setLoading(false)
     }

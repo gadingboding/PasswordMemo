@@ -12,31 +12,34 @@ import { CreateLabelPage } from './pages/CreateLabelPage'
 import { EditLabelPage } from './pages/EditLabelPage'
 import { Layout } from './components/Layout'
 import { LockOverlay } from './components/LockOverlay'
+import { ToastProvider } from './contexts/ToastContext'
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
   return (
-    <div className="relative">
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/records" replace />} />
-          <Route path="/records" element={<RecordsPage />} />
-          <Route path="/records/create" element={<CreateRecordPage />} />
-          <Route path="/records/edit/:id" element={<EditRecordPage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/templates/create" element={<CreateTemplatePage />} />
-          <Route path="/templates/edit/:id" element={<EditTemplatePage />} />
-          <Route path="/labels" element={<LabelsPage />} />
-          <Route path="/labels/create" element={<CreateLabelPage />} />
-          <Route path="/labels/edit/:id" element={<EditLabelPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </Layout>
-      
-      {/* Show lock overlay when not authenticated */}
-      {!isAuthenticated && <LockOverlay />}
-    </div>
+    <ToastProvider>
+      <div className="relative">
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/records" replace />} />
+            <Route path="/records" element={<RecordsPage />} />
+            <Route path="/records/create" element={<CreateRecordPage />} />
+            <Route path="/records/edit/:id" element={<EditRecordPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/templates/create" element={<CreateTemplatePage />} />
+            <Route path="/templates/edit/:id" element={<EditTemplatePage />} />
+            <Route path="/labels" element={<LabelsPage />} />
+            <Route path="/labels/create" element={<CreateLabelPage />} />
+            <Route path="/labels/edit/:id" element={<EditLabelPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </Layout>
+        
+        {/* Show lock overlay when not authenticated */}
+        {!isAuthenticated && <LockOverlay />}
+      </div>
+    </ToastProvider>
   )
 }
 

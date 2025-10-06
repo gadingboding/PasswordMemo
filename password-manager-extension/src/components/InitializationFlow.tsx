@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Stepper } from '@/components/ui/Stepper'
 import { webdavPermissions } from '@/utils/permissions'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface InitializationFlowProps {
   onComplete: (passwordManager: PasswordManager) => void
@@ -20,6 +21,7 @@ interface WebDAVConfig {
 
 export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   const { t, ready } = useTranslation()
+  const { showError } = useToastContext()
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   
@@ -73,17 +75,17 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
 
   const validatePasswordStep = () => {
     if (!password.trim()) {
-      alert(ready ? t('initialization.passwordRequired') : 'Master password is required')
+      showError(ready ? t('initialization.passwordRequired') : 'Master password is required')
       return false
     }
     if (password !== confirmPassword) {
-      alert(ready ? t('initialization.passwordMismatch') : 'Passwords do not match')
+      showError(ready ? t('initialization.passwordMismatch') : 'Passwords do not match')
       return false
     }
     const complexity = passwordManager.checkPasswordComplexity(password)
     if (!complexity.isAcceptable) {
       const errorMessage = `Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`
-      alert(errorMessage)
+      showError(errorMessage)
       return false
     }
     return true
@@ -97,7 +99,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     
     // If user chose to configure but hasn't saved the configuration yet
     if (configureWebDAV && !webdavConfigured) {
-      alert('Please save your WebDAV configuration or cancel to proceed')
+      showError('Please save your WebDAV configuration or cancel to proceed')
       return false
     }
     
@@ -157,7 +159,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
 
   const saveWebDAVConfig = async () => {
     if (!webdavConfig.url.trim() || !webdavConfig.username.trim() || !webdavConfig.password.trim()) {
-      alert('Please fill in all WebDAV configuration fields')
+      showError('Please fill in all WebDAV configuration fields')
       return
     }
     
@@ -203,7 +205,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     } catch (error) {
       console.error('Initialization failed:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
-      alert(`Initialization failed: ${errorMessage}`)
+      showError(`Initialization failed: ${errorMessage}`)
     } finally {
       setLoading(false)
     }

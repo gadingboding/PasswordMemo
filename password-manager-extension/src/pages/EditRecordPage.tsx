@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface RecordFormData {
   title: string
@@ -19,6 +20,7 @@ export function EditRecordPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const [labels, setLabels] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -102,7 +104,7 @@ export function EditRecordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.title.trim() || !id) {
-      alert(t('recordForm.pleaseFillRequiredFields'))
+      showError(t('recordForm.pleaseFillRequiredFields'))
       return
     }
 
@@ -117,7 +119,7 @@ export function EditRecordPage() {
       navigate('/records')
     } catch (error) {
       console.error('Failed to update record:', error)
-      alert(t('recordForm.failedToUpdateRecord'))
+      showError(t('recordForm.failedToUpdateRecord'))
     } finally {
       setLoading(false)
     }

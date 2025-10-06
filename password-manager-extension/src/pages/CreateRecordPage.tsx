@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface RecordFormData {
   title: string
@@ -19,6 +20,7 @@ export function CreateRecordPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const [templates, setTemplates] = useState<any[]>([])
   const [labels, setLabels] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -101,7 +103,7 @@ export function CreateRecordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.title.trim() || !formData.templateId) {
-      alert(t('recordForm.pleaseFillRequiredFields'))
+      showError(t('recordForm.pleaseFillRequiredFields'))
       return
     }
 
@@ -117,7 +119,7 @@ export function CreateRecordPage() {
       navigate('/records')
     } catch (error) {
       console.error('Failed to create record:', error)
-      alert(t('recordForm.failedToCreateRecord'))
+      showError(t('recordForm.failedToCreateRecord'))
     } finally {
       setLoading(false)
     }

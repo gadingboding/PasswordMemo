@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { useToastContext } from '@/contexts/ToastContext'
 
 export function TemplatesPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -39,7 +41,7 @@ export function TemplatesPage() {
     } catch (error) {
       console.error('Failed to delete template:', error)
       // Template deletion might not be implemented yet
-      alert(t('templateForm.templateDeletionNotSupported'))
+      showError(t('templateForm.templateDeletionNotSupported'))
     }
   }
 

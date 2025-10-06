@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface LabelFormData {
   name: string
@@ -24,12 +25,13 @@ export function EditLabelPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [label, setLabel] = useState<any>(null)
-  const [formData, setFormData] = useState<LabelFormData>({ 
-    name: '', 
-    color: PRESET_COLORS[0] 
+  const [formData, setFormData] = useState<LabelFormData>({
+    name: '',
+    color: PRESET_COLORS[0]
   })
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export function EditLabelPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.name.trim() || !id) {
-      alert(t('labelForm.pleaseEnterLabelName'))
+      showError(t('labelForm.pleaseEnterLabelName'))
       return
     }
 
@@ -76,7 +78,7 @@ export function EditLabelPage() {
       navigate('/labels')
     } catch (error) {
       console.error('Failed to update label:', error)
-      alert(t('labelForm.failedToUpdateLabel'))
+      showError(t('labelForm.failedToUpdateLabel'))
     } finally {
       setLoading(false)
     }

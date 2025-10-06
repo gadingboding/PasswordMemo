@@ -303,5 +303,10 @@
     "email": "邮箱",
     "url": "网址",
     "textarea": "多行文本"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "错误",
+    "info": "信息"
   }
 }

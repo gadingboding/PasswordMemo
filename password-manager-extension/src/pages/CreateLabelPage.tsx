@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { useToastContext } from '@/contexts/ToastContext'
 
 interface LabelFormData {
   name: string
@@ -23,16 +24,17 @@ export function CreateLabelPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { passwordManager } = useAuthStore()
+  const { showError } = useToastContext()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<LabelFormData>({ 
-    name: '', 
-    color: PRESET_COLORS[0] 
+  const [formData, setFormData] = useState<LabelFormData>({
+    name: '',
+    color: PRESET_COLORS[0]
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.name.trim()) {
-      alert(t('labelForm.pleaseEnterLabelName'))
+      showError(t('labelForm.pleaseEnterLabelName'))
       return
     }
 
@@ -42,7 +44,7 @@ export function CreateLabelPage() {
       navigate('/labels')
     } catch (error) {
       console.error('Failed to create label:', error)
-      alert(t('labelForm.failedToCreateLabel'))
+      showError(t('labelForm.failedToCreateLabel'))
     } finally {
       setLoading(false)
     }

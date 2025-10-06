@@ -303,5 +303,10 @@
     "email": "Email",
     "url": "URL",
     "textarea": "Textarea"
+  },
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "info": "Info"
   }
 }
