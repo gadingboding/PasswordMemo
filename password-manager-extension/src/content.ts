@@ -1,9 +1,10 @@
 // Content script for Password Manager Extension
+import browser from 'webextension-polyfill';
 
 console.log('Password Manager content script loaded');
 
 // Listen for messages from popup or background script
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((request: any, _sender: any, sendResponse: any): true => {
   if (request.action === 'fillPassword') {
     // Find password input fields
     const passwordInputs = document.querySelectorAll('input[type="password"]');
@@ -19,6 +20,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     
     sendResponse({ success: true });
   }
+  return true;
 });
 
 // Auto-detect login forms

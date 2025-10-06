@@ -1,16 +1,18 @@
 // Background script for Password Manager Extension
+import browser from 'webextension-polyfill';
 
 // Handle messages from content script or popup
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((request: any, _sender: any, sendResponse: any): true => {
   if (request.action === 'getActiveTab') {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    browser.tabs.query({ active: true, currentWindow: true }).then((tabs: any) => {
       sendResponse({ tab: tabs[0] });
     });
     return true; // Will respond asynchronously
   }
+  return true;
 });
 
 // Handle browser action click (optional fallback)
-chrome.action.onClicked.addListener((_tab) => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+browser.action.onClicked.addListener((_tab: any) => {
+  browser.tabs.create({ url: browser.runtime.getURL('options.html') });
 });

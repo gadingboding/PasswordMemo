@@ -5,7 +5,8 @@
  * Provides a unified interface for permission checking across different platforms.
  */
 
-import {detectEnvironment, EnvType} from "@/utils.js";
+import {detectEnvironment, EnvType} from "./utils.js";
+import browser from 'webextension-polyfill';
 
 /**
  * WebDAV permissions interface
@@ -46,9 +47,9 @@ export class BrowserWebDAVPermissions implements WebDAVPermissions {
    */
   private async requestWebDAVPermission(webdavUrl: string): Promise<boolean> {
     try {
-      // Check if chrome.permissions API is available
-      if (typeof window === 'undefined' || !window.chrome || !window.chrome.permissions) {
-        return true; // Non-browser environment or permissions API not available
+      // Check if browser.permissions API is available
+      if (detectEnvironment() != EnvType.BROWSER) {
+        return true;
       }
 
       const url = new URL(webdavUrl);
@@ -56,16 +57,13 @@ export class BrowserWebDAVPermissions implements WebDAVPermissions {
 
       const request = {origins: [origin]};
 
-      return new Promise<boolean>((resolve) => {
-        window.chrome.permissions.request(request, (granted) => {
-          if (granted) {
-            console.log('WebDAV permission request successful:', origin);
-          } else {
-            console.log('WebDAV permission request denied:', origin);
-          }
-          resolve(granted || false);
-        });
-      });
+      const granted = await browser.permissions.request(request);
+      if (granted) {
+        console.log('WebDAV permission request successful:', origin);
+      } else {
+        console.log('WebDAV permission request denied:', origin);
+      }
+      return granted || false;
     } catch (error) {
       console.error('WebDAV permission request failed:', error);
       return false;
@@ -77,8 +75,8 @@ export class BrowserWebDAVPermissions implements WebDAVPermissions {
    */
   private async checkWebDAVPermission(webdavUrl: string): Promise<boolean> {
     try {
-      // Check if chrome.permissions API is available
-      if (typeof window === 'undefined' || !window.chrome || !window.chrome.permissions) {
+      // Check if browser.permissions API is available
+      if (typeof window === 'undefined' || !browser.permissions) {
         return true; // Non-browser environment or permissions API not available
       }
 
@@ -87,9 +85,7 @@ export class BrowserWebDAVPermissions implements WebDAVPermissions {
 
       const request = {origins: [origin]};
 
-      return new Promise<boolean>((resolve) => {
-        window.chrome.permissions.contains(request, resolve);
-      });
+      return await browser.permissions.contains(request);
     } catch (error) {
       console.error('Failed to check WebDAV permissions:', error);
       return false;

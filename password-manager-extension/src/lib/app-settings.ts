@@ -1,4 +1,5 @@
 import { AppSettings } from '@/types/extension';
+import browser from 'webextension-polyfill';
 
 const STORAGE_KEY = 'app-settings';
 
@@ -30,8 +31,9 @@ export class AppSettingsManager {
    */
   async loadSettings(): Promise<AppSettings> {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+      const result = await browser.storage.local.get(STORAGE_KEY);
+      const stored = result[STORAGE_KEY];
+      if (stored && typeof stored === 'string') {
         this.settings = JSON.parse(stored);
         return this.settings!;
       }
@@ -52,7 +54,7 @@ export class AppSettingsManager {
    */
   async saveSettings(settings: AppSettings): Promise<void> {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      await browser.storage.local.set({[STORAGE_KEY]: JSON.stringify(settings)});
       this.settings = settings;
     } catch (error) {
       console.error('Failed to save app settings:', error);

@@ -1,5 +1,6 @@
 import {STORAGE_KEYS} from "./Constants.js";
 import {detectEnvironment, EnvType} from "./utils.js";
+import browser from 'webextension-polyfill';
 
 
 
@@ -58,51 +59,54 @@ export interface NodeStorageConfig extends StorageAdapterConfig {
 }
 
 /**
- * Browser storage adapter using localStorage
+ * Browser storage adapter using webextension-polyfill storage API
  */
 class BrowserStorageAdapter implements LocalStorageAdapter {
   constructor(config: BrowserStorageConfig) {
   }
 
   /**
-   * Read content from localStorage
+   * Read content from browser storage
    */
   async read(path: string): Promise<string | null> {
     try {
-      return localStorage.getItem(path);
+      const result = await browser.storage.local.get(path);
+      const value = result[path];
+      return typeof value === 'string' ? value : null;
     } catch (error) {
       return null;
     }
   }
 
   /**
-   * Write content to localStorage
+   * Write content to browser storage
    */
   async write(path: string, data: string): Promise<void> {
     try {
-      localStorage.setItem(path, data);
+      await browser.storage.local.set({[path]: data});
     } catch (error) {
       throw new Error(`Failed to write to storage: ${error}`);
     }
   }
 
   /**
-   * Check if key exists in localStorage
+   * Check if key exists in browser storage
    */
   async exists(path: string): Promise<boolean> {
     try {
-      return localStorage.getItem(path) !== null;
+      const result = await browser.storage.local.get(path);
+      return result.hasOwnProperty(path);
     } catch (error) {
       return false;
     }
   }
 
   /**
-   * Remove content from localStorage
+   * Remove content from browser storage
    */
   async remove(path: string): Promise<void> {
     try {
-      localStorage.removeItem(path);
+      await browser.storage.local.remove(path);
     } catch (error) {
       throw new Error(`Failed to remove from storage: ${error}`);
     }

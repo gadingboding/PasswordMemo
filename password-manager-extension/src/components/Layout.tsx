@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
+import * as browser from 'webextension-polyfill'
 
 interface LayoutProps {
   children: ReactNode
@@ -25,8 +26,8 @@ export function Layout({ children }: LayoutProps) {
 
   const handleFloatingWindowClick = async () => {
     try {
-      await chrome.windows.create({
-        url: chrome.runtime.getURL('popup.html'),
+      await browser.windows.create({
+        url: browser.runtime.getURL('popup.html'),
         type: 'popup',
         width: 400,
         height: 600,

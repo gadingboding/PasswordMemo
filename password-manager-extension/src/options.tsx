@@ -24,6 +24,7 @@ const App = () => (
   <Router>
     <div className="min-h-screen w-full bg-white">
       <Routes>
+        <Route path="/options.html" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Layout><div /></Layout>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
