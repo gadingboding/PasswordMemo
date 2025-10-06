@@ -356,14 +356,6 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                 <Server className="h-4 w-4 mr-2" />
                 {ready ? t('initialization.configureWebDAV') : 'Configure WebDAV'}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleNext}
-                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
-              >
-                {ready ? t('common.next') : 'Skip for Now'}
-              </Button>
             </div>
           </div>
         ) : (

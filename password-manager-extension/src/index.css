@@ -57,6 +57,48 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+  
+  /* 隐藏所有滚动条，但保持滚动功能 */
+  html {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+  }
+  
+  body {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+  }
+  
+  body::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+  }
+  
+  * {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+  }
+  
+  *::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+  }
+  
+  /* 特别处理可能有滚动条的元素 */
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar,
+  [class*="overflow"]::-webkit-scrollbar {
+    display: none !important;
+  }
+  
+  .overflow-y-auto,
+  .overflow-auto,
+  [class*="overflow"] {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
 }
 
 @layer utilities {
