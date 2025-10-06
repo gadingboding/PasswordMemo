@@ -25,6 +25,7 @@
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
+    "@types/webextension-polyfill": "^0.12.4",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
     "@vitejs/plugin-react": "^4.3.4",
@@ -46,6 +47,7 @@
     "libsodium-wrappers": "^0.7.15",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "webdav": "^5.8.0"
+    "webdav": "^5.8.0",
+    "webextension-polyfill": "^0.12.0"
   }
 }
