@@ -144,14 +144,14 @@ export class Sync {
       throw new Error('WebDAV configuration not initialized');
     }
 
-    // Use custom path if provided, otherwise default to '/password-manager/vault.json'
+    // Use custom path if provided, otherwise default to '/password-note/vault.json'
     let filePath: string;
     const customPath = this.webdavConfig.path;
     if (customPath) {
       // Normalize path - ensure it starts with a slash
       filePath = customPath.startsWith('/') ? customPath : `/${customPath}`;
     } else {
-      filePath = '/password-manager/vault.json';
+      filePath = '/password-note/vault.json';
     }
 
     // Extract directory from file path
