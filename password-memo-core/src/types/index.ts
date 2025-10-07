@@ -1,7 +1,7 @@
 /**
  * Core Types and Interfaces
  *
- * This module exports all the core type definitions used throughout the password manager.
+ * This module exports all the password-memo-core type definitions used throughout the password manager.
  */
 
 // Vault data structures

@@ -1,7 +1,7 @@
 {
-  "name": "password-manager-extension",
+  "name": "password-memo",
   "version": "1.0.0",
-  "description": "Password Manager Browser Extension",
+  "description": "PasswordMemo Browser Extension",
   "private": true,
   "type": "module",
   "scripts": {
