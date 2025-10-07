@@ -16,12 +16,12 @@ KDF（Key Derivation Function）配置系统为密码管理器提供了灵活的
 
 ### 核心组件
 
-1. **KDFManager** (`core/src/kdf-manager.ts`)
+1. **KDFAdapter** (`core/src/KDFAdapter.ts`)
    - 管理 KDF 配置和参数验证
    - 提供密钥派生功能
    - 支持多种算法
 
-2. **KDFConfigAPI** (`core/src/kdf-config-api.ts`)
+2. **KDFConfigApi** (`core/src/KDFConfigApi.ts`)
    - 提供高级 API 接口
    - 管理 KDF 配置更新
    - 提供配置建议和验证
@@ -37,7 +37,7 @@ KDF（Key Derivation Function）配置系统为密码管理器提供了灵活的
 ### 数据流
 
 ```
-用户密码 + KDF配置 → KDFManager → Master Key → 数据加密/解密
+用户密码 + KDF配置 → KDFAdapter → Master Key → 数据加密/解密
 ```
 
 ## 使用指南
@@ -98,8 +98,8 @@ const record = await passwordManager.getRecord(recordId);
 #### 获取当前 KDF 配置
 
 ```typescript
-// 通过 VaultManager 获取（需要内部访问）
-const vaultManager = new VaultManager();
+// 通过 DataManager 获取（需要内部访问）
+const vaultManager = new DataManager();
 await vaultManager.loadVaultFromStorage();
 const kdfConfig = vaultManager.getKDFConfig();
 console.log('Current KDF algorithm:', kdfConfig?.algorithm);
@@ -108,9 +108,9 @@ console.log('Current KDF algorithm:', kdfConfig?.algorithm);
 #### 验证 KDF 配置
 
 ```typescript
-import { KDFManager } from '@password-manager/core';
+import { KDFAdapter } from '@password-manager/core';
 
-const kdfManager = new KDFManager();
+const kdfManager = new KDFAdapter();
 const validation = kdfManager.validateConfig(kdfConfig);
 
 if (validation.valid) {
