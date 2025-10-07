@@ -39,14 +39,12 @@ jobs:
     - name: Install dependencies
       run: pnpm install
       
-    - name: Build and package
-      run: |
-        cd password-memo-browser
-        VERSION=${{ env.VERSION }} pnpm run build:zip
-        
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        
+    - name: Build and package
+      run: VERSION=${{ env.VERSION }} pnpm run build
       
     - name: Create Release
       id: create_release
