@@ -4,9 +4,9 @@
   "description": "",
   "private": true,
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm run build:core && pnpm run build:extension",
     "build:core": "pnpm --filter password-memo-core build",
-    "build:extension": "pnpm --filter password-memo-browser build"
+    "build:extension": "pnpm --filter password-memo-browser build:zip"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
