@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { PasswordManager } from 'password-manager-core'
+import { PasswordManager } from 'password-memo-core'
 
 interface AuthState {
   isAuthenticated: boolean

@@ -1,13 +1,12 @@
 {
-  "name": "password-manager",
-  "version": "1.0.0",
+  "name": "password-memo",
+  "version": "20251007",
   "description": "",
-  "main": "index.js",
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
-    "build:core": "pnpm --filter password-manager-core build",
-    "build:extension": "pnpm --filter password-manager-extension build"
+    "build:core": "pnpm --filter password-memo-core build",
+    "build:extension": "pnpm --filter password-memo-browser build"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

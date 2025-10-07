@@ -4,4 +4,4 @@
 .serena
 node_modules
 dist
-/core/tsconfig.tsbuildinfo
+/password-memo-core/tsconfig.tsbuildinfo

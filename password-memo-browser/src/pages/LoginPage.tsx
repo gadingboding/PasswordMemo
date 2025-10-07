@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { PasswordManager } from 'password-manager-core'
+import { PasswordManager } from 'password-memo-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'

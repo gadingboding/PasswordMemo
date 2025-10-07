@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Lock, Server, Check, AlertCircle } from 'lucide-react'
-import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
+import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-memo-core'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'

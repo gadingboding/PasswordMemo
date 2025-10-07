@@ -47,7 +47,7 @@ KDF（Key Derivation Function）配置系统为密码管理器提供了灵活的
 #### 1. 创建密码管理器实例
 
 ```typescript
-import { PasswordManager } from 'password-manager-core';
+import { PasswordManager } from 'password-manager-password-memo-core';
 
 const passwordManager = new PasswordManager();
 await passwordManager.initialize({
@@ -108,7 +108,7 @@ console.log('Current KDF algorithm:', kdfConfig?.algorithm);
 #### 验证 KDF 配置
 
 ```typescript
-import { KDFAdapter } from '@password-manager/core';
+import { KDFAdapter } from '@password-manager/password-memo-core';
 
 const kdfManager = new KDFAdapter();
 const validation = kdfManager.validateConfig(kdfConfig);

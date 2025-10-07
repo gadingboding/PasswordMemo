@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import type { TemplateField } from 'password-manager-core'
+import type { TemplateField } from 'password-memo-core'
 import { useToastContext } from '@/contexts/ToastContext'
 
 interface ExtendedTemplateField extends TemplateField {
