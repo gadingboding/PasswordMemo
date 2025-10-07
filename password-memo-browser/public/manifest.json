@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Password Manager",
-  "version": "1.0.0",
+  "name": "Password Memo",
+  "version": "0.1.0",
   "description": "Secure password manager with encryption and synchronization",
   "permissions": ["storage", "activeTab", "scripting", "notifications", "tabs"],
   "optional_permissions": [
@@ -13,7 +13,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Password Manager"
+    "default_title": "Password Memo"
   },
   "options_page": "options.html",
   "content_scripts": [{
