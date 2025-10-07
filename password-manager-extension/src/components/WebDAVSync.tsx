@@ -4,13 +4,14 @@ import { Save, Server, Upload, Download } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { useToastContext } from '@/contexts/ToastContext'
 
 export function WebDAVSync() {
   const { t, ready } = useTranslation()
-  const { passwordManager } = useAuthStore()
+  const { passwordManager, isAuthenticated } = useAuthStore()
   const { showSuccess, showError } = useToastContext()
   const [webdavConfig, setWebdavConfig] = useState({
     url: '',
@@ -26,26 +27,55 @@ export function WebDAVSync() {
   })
   const [isConfigured, setIsConfigured] = useState(false)
 
+  // 监听认证状态变化，重置WebDAV配置状态
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // 用户未认证时，重置所有状态
+      setWebdavConfig({
+        url: '',
+        username: '',
+        password: ''
+      })
+      setIsConfigured(false)
+      setSyncStatus(null)
+    }
+  }, [isAuthenticated])
+
   useEffect(() => {
     loadSettings()
-  }, [passwordManager])
+  }, [passwordManager, isAuthenticated]) // 添加isAuthenticated依赖
 
   const loadSettings = async () => {
     try {
-      // Only load from password manager (user profile) - never from app settings for security
-      if (passwordManager && passwordManager.isUnlocked()) {
+      // 只有在用户已认证且密码管理器可用且未锁定时才加载配置
+      if (isAuthenticated && passwordManager && passwordManager.isUnlocked()) {
         try {
           const webdavConfigFromManager = await passwordManager.getWebDAVConfig()
-          if (webdavConfigFromManager) {
+          if (webdavConfigFromManager && webdavConfigFromManager.url) {
             setWebdavConfig({
               url: webdavConfigFromManager.url,
               username: webdavConfigFromManager.username,
               password: webdavConfigFromManager.password
             })
             setIsConfigured(true)
+          } else {
+            // 如果没有配置或配置无效，重置状态
+            setWebdavConfig({
+              url: '',
+              username: '',
+              password: ''
+            })
+            setIsConfigured(false)
           }
         } catch (error) {
           console.error('Failed to load WebDAV config from password manager:', error)
+          // 出错时也要重置状态
+          setWebdavConfig({
+            url: '',
+            username: '',
+            password: ''
+          })
+          setIsConfigured(false)
         }
         
         const status = passwordManager.getSyncStatus()
@@ -53,6 +83,13 @@ export function WebDAVSync() {
       }
     } catch (error) {
       console.error('Failed to load settings:', error)
+      // 出错时重置状态
+      setWebdavConfig({
+        url: '',
+        username: '',
+        password: ''
+      })
+      setIsConfigured(false)
     }
   }
 
@@ -60,7 +97,7 @@ export function WebDAVSync() {
     e.preventDefault()
 
     // WebDAV configuration should only be saved in the password manager for security
-    if (!passwordManager || !passwordManager.isUnlocked()) {
+    if (!isAuthenticated || !passwordManager || !passwordManager.isUnlocked()) {
       showError(ready ? t('sync.webdavConfigLocked') : 'Please unlock your vault first to configure WebDAV settings')
       return
     }
@@ -81,7 +118,7 @@ export function WebDAVSync() {
   }
 
   const handlePush = async () => {
-    if (!passwordManager) return
+    if (!isAuthenticated || !passwordManager) return
 
     setLoading(true)
     try {
@@ -109,7 +146,7 @@ export function WebDAVSync() {
   }
 
   const handlePull = async () => {
-    if (!passwordManager) return
+    if (!isAuthenticated || !passwordManager) return
 
     setLoading(true)
     try {
@@ -141,7 +178,7 @@ export function WebDAVSync() {
   }
 
   const handlePasswordSubmit = async (password: string) => {
-    if (!passwordManager) return
+    if (!isAuthenticated || !passwordManager) return
 
     setLoading(true)
     try {
@@ -210,11 +247,17 @@ export function WebDAVSync() {
   const handleResetConfig = async () => {
     try {
       // Only reset in password manager - never in app settings for security
-      if (passwordManager && passwordManager.isUnlocked()) {
+      if (isAuthenticated && passwordManager && passwordManager.isUnlocked()) {
         // Use the dedicated method to clear WebDAV config
         await passwordManager.clearWebDAVConfig()
       }
       
+      // 重置本地状态
+      setWebdavConfig({
+        url: '',
+        username: '',
+        password: ''
+      })
       setIsConfigured(false)
     } catch (error) {
       console.error('Failed to reset WebDAV config:', error)
@@ -254,29 +297,26 @@ export function WebDAVSync() {
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.username') : 'Username'}</label>
-                  <Input
-                    type="text"
-                    placeholder={ready ? t('sync.username') : 'Username'}
-                    value={webdavConfig.username}
-                    onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
-                    required
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.password') : 'Password'}</label>
-                  <Input
-                    type="password"
-                    placeholder={ready ? t('sync.password') : 'Password'}
-                    value={webdavConfig.password}
-                    onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
-                    required
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.username') : 'Username'}</label>
+                <Input
+                  type="text"
+                  placeholder={ready ? t('sync.username') : 'Username'}
+                  value={webdavConfig.username}
+                  onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
+                  required
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.password') : 'Password'}</label>
+                <PasswordInput
+                  placeholder={ready ? t('sync.password') : 'Password'}
+                  value={webdavConfig.password}
+                  onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
+                  required
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                />
               </div>
               <div className="flex gap-2">
                 <Button 

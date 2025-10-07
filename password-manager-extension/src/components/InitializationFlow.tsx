@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, Lock, Server, Check, AlertCircle } from 'lucide-react'
+import { Lock, Server, Check, AlertCircle } from 'lucide-react'
 import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-manager-core'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Stepper } from '@/components/ui/Stepper'
 import { useToastContext } from '@/contexts/ToastContext'
 
@@ -27,8 +28,6 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   // Step 1: Password state
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordComplexity, setPasswordComplexity] = useState<any>(null)
   const [passwordManager] = useState(() => PasswordManager.getInstance())
   
@@ -206,59 +205,27 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
           <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-2">
             {ready ? t('initialization.masterPasswordLabel') : 'Master Password'}
           </label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder={ready ? t('initialization.masterPasswordPlaceholder') : 'Enter a strong master password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pr-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-              autoFocus
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <PasswordInput
+            id="password"
+            placeholder={ready ? t('initialization.masterPasswordPlaceholder') : 'Enter a strong master password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            autoFocus
+          />
         </div>
         
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-200 mb-2">
             {ready ? t('initialization.confirmPasswordLabel') : 'Confirm Password'}
           </label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              placeholder={ready ? t('initialization.confirmPasswordPlaceholder') : 'Confirm your master password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pr-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <PasswordInput
+            id="confirmPassword"
+            placeholder={ready ? t('initialization.confirmPasswordPlaceholder') : 'Confirm your master password'}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+          />
         </div>
         
         {/* Password Strength Indicator */}
@@ -379,8 +346,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                   <label className="block text-sm font-medium text-slate-200 mb-2">
                     {ready ? t('initialization.webDAVPasswordLabel') : 'WebDAV Password'}
                   </label>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     placeholder={ready ? t('initialization.webDAVPasswordPlaceholder') : 'Enter WebDAV password'}
                     value={webdavConfig.password}
                     onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}

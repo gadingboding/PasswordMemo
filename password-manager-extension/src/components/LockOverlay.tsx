@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LockOverlay() {
   const { t, ready } = useTranslation()
   const { login, setPasswordManager } = useAuthStore()
   const [masterPassword, setMasterPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
@@ -113,27 +112,15 @@ export function LockOverlay() {
               <label htmlFor="masterPassword" className="block text-sm font-medium text-slate-200">
                 {ready ? t('auth.masterPassword') : 'Master Password'}
               </label>
-              <div className="relative">
-                <Input
-                  id="masterPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={masterPassword}
-                  onChange={(e) => setMasterPassword(e.target.value)}
-                  placeholder={ready ? t('auth.enterPassword') : 'Enter master password'}
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pr-12"
-                  required
-                  autoFocus
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
+              <PasswordInput
+                id="masterPassword"
+                value={masterPassword}
+                onChange={(e) => setMasterPassword(e.target.value)}
+                placeholder={ready ? t('auth.enterPassword') : 'Enter master password'}
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                required
+                autoFocus
+              />
             </div>
 
             {error && (

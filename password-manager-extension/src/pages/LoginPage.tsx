@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PasswordManager } from 'password-manager-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LoginPage() {
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
   const [showInitialization, setShowInitialization] = useState(false)
   
@@ -112,27 +111,12 @@ export function LoginPage() {
             )}
 
             <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={t('login.enterMasterPassword')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
-              </div>
+              <PasswordInput
+                placeholder={t('login.enterMasterPassword')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
               
               <div className="text-xs text-muted-foreground">
                 <p><strong>{t('login.returningUser')}</strong> {t('login.returningUserDesc')}</p>

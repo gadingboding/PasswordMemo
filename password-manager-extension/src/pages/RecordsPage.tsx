@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Eye, Edit, Trash2, X, Key } from 'lucide-react'
+import { Search, Eye, EyeOff, Edit, Trash2, X, Key } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Dialog, DialogFooter } from '@/components/ui/Dialog'
 
@@ -311,25 +312,39 @@ export function RecordsPage() {
                   return (
                     <div key={field.id} className="space-y-1">
                       <label className="text-sm font-medium text-slate-200">{field.name}</label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type={field.type === 'password' ? (showPasswords[field.id] ? 'text' : 'password') : 'text'}
+                      {field.type === 'textarea' ? (
+                        <Textarea
                           value={stringValue}
                           readOnly
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-slate-700 border-slate-600 text-white resize-none"
+                          rows={4}
                         />
-                        {field.type === 'password' && (
+                      ) : field.type === 'password' ? (
+                        <div className="relative">
+                          <Input
+                            type={showPasswords[field.id] ? 'text' : 'password'}
+                            value={stringValue}
+                            readOnly
+                            className="bg-slate-700 border-slate-600 text-white pr-10"
+                          />
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
+                            className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
                             onClick={() => togglePasswordVisibility(field.id)}
-                            className="text-slate-400 hover:text-white"
                           >
-                            {showPasswords[field.id] ? <Eye className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showPasswords[field.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <Input
+                          type="text"
+                          value={stringValue}
+                          readOnly
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      )}
                     </div>
                   )
                 })

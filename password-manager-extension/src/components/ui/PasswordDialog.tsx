@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogFooter } from './Dialog'
 import { Button } from './Button'
-import { Input } from './Input'
+import { PasswordInput } from './PasswordInput'
 
 interface PasswordDialogProps {
   open: boolean
@@ -28,7 +28,6 @@ export function PasswordDialog({
 }: PasswordDialogProps) {
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +39,6 @@ export function PasswordDialog({
   const handleClose = () => {
     if (!loading) {
       setPassword('')
-      setShowPassword(false)
       onClose()
     }
   }
@@ -49,7 +47,6 @@ export function PasswordDialog({
   React.useEffect(() => {
     if (!open) {
       setPassword('')
-      setShowPassword(false)
     }
   }, [open])
 
@@ -76,33 +73,16 @@ export function PasswordDialog({
             <label htmlFor="password" className="block text-sm font-medium text-slate-200">
               {t('auth.masterPassword')}
             </label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t('auth.enterPassword')}
-                className="pr-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                disabled={loading}
-                autoFocus
-                required
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            <PasswordInput
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.enterPassword')}
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              disabled={loading}
+              autoFocus
+              required
+            />
           </div>
         </div>
 

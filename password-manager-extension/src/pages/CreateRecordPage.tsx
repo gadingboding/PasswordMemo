@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Eye, EyeOff, Save } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Select } from '@/components/ui/Select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { useToastContext } from '@/contexts/ToastContext'
@@ -30,7 +32,6 @@ export function CreateRecordPage() {
     fieldData: {},
     labelIds: []
   })
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [templateFields, setTemplateFields] = useState<any[]>([])
 
   useEffect(() => {
@@ -125,13 +126,6 @@ export function CreateRecordPage() {
     }
   }
 
-  const togglePasswordVisibility = (fieldName: string) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [fieldName]: !prev[fieldName]
-    }))
-  }
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -196,37 +190,33 @@ export function CreateRecordPage() {
                         {field.name} {!field.optional && '*'}
                       </label>
                       {field.type === 'textarea' ? (
-                        <textarea
+                        <Textarea
                           id={field.name}
                           value={formData.fieldData[field.name] || ''}
                           onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
                           placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
                           required={!field.optional}
-                          className="flex min-h-[80px] w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white ring-offset-background placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                        />
+                      ) : field.type === 'password' ? (
+                        <PasswordInput
+                          id={field.name}
+                          value={formData.fieldData[field.name] || ''}
+                          onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
+                          placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
+                          required={!field.optional}
+                          className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                         />
                       ) : (
-                        <div className="relative">
-                          <Input
-                            id={field.name}
-                            type={field.type === 'password' ? (showPasswords[field.name] ? 'text' : 'password') : field.type}
-                            value={formData.fieldData[field.name] || ''}
-                            onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
-                            placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
-                            required={!field.optional}
-                            className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                          />
-                          {field.type === 'password' && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                              onClick={() => togglePasswordVisibility(field.name)}
-                            >
-                              {showPasswords[field.name] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          )}
-                        </div>
+                        <Input
+                          id={field.name}
+                          type={field.type}
+                          value={formData.fieldData[field.name] || ''}
+                          onChange={(e) => handleFieldDataChange(field.name, e.target.value)}
+                          placeholder={t('recordForm.enterFieldName', { name: field.name.toLowerCase() })}
+                          required={!field.optional}
+                          className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                        />
                       )}
                     </div>
                   ))}
