@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "password-memo-core": "workspace:*",
+    "password-memo-core": "file:../password-memo-core",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.1.3",
