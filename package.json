@@ -5,17 +5,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "__comment_all": "--- RUN ALL PACKAGES ---",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "__comment_specific": "--- RUN SPECIFIC PACKAGES (using package name) ---",
     "build:core": "pnpm --filter password-manager-core build",
-    "test:core": "pnpm --filter password-manager-core test",
-    "lint:core": "pnpm --filter password-manager-core lint",
-    "build:extension": "pnpm --filter password-manager-extension build",
-    "dev:extension": "pnpm --filter password-manager-extension dev",
-    "lint:extension": "pnpm --filter password-manager-extension lint"
+    "build:extension": "pnpm --filter password-manager-extension build"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
