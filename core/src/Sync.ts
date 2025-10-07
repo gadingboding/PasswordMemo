@@ -10,6 +10,7 @@ import {Vault, WebDAVConfig} from './types/vault.js';
 import {PullResult, PushResult, SyncStatus} from './types/sync.js';
 import {DataManager} from './DataManager.js';
 import {IRemoteStorage, WebDAVRemoteStorage} from './RemoteStorage.js';
+import {CryptographyEngine} from "./CryptoEngine.js";
 
 /**
  * Sync Manager for handling synchronization
@@ -86,7 +87,8 @@ export class Sync {
       labels: {...localVault.labels},
       templates: {...localVault.templates},
       history: localVault.history,
-      kdf: localVault.kdf
+      kdf: localVault.kdf,
+      sentinel: localVault.sentinel // sentinel将在KDF更新后重新生成
     };
 
     let conflictsResolved = 0;
@@ -179,12 +181,17 @@ export class Sync {
     success: boolean;
     error?: string;
     passwordRequired?: boolean;
+    kdfUpdated?: boolean;
   }> {
-    const remoteKdfConfig = remoteVault.kdf;
+    const remoteKdfConfig = remoteVault.kdf!;
     const localKdfConfig = localVault.kdf!;
 
-    if (!remoteKdfConfig || this.vaultManager.kdfManager.areConfigsCompatible(remoteKdfConfig, localKdfConfig)) {
-      return {success: true};
+    if (this.vaultManager.kdfManager.areConfigsCompatible(remoteKdfConfig, localKdfConfig)) {
+      let result = await CryptographyEngine.validateMasterKey(remoteVault.sentinel!, this.vaultManager.getMasterKey()!);
+      if (!result.success) {
+        return {success: false, error: 'Mismatched remote sentinel'};
+      }
+      return {success: true, kdfUpdated: false};
     }
 
     if (!password) {
@@ -197,7 +204,20 @@ export class Sync {
 
     try {
       await this.vaultManager.updateKDFConfig(remoteKdfConfig, password);
-      return {success: true};
+      // 验证远程sentinel是否可以用新的master key解密
+      const newMasterKey = this.vaultManager.getMasterKey()!;
+      const sentinelValidation = await CryptographyEngine.validateMasterKey(remoteVault.sentinel!, newMasterKey);
+      if (!sentinelValidation.success) {
+        // 还不能解密说明远端数据存在问题，失败返回并重置回之前的kdf配置
+        await this.vaultManager.updateKDFConfig(localKdfConfig, password);
+        return {
+          success: false,
+          error: 'Invalid remote sentinel'
+        };
+      }
+      await this.vaultManager.updateSentinel(newMasterKey);
+      localVault.sentinel = remoteVault.sentinel;
+      return {success: true, kdfUpdated: true};
     } catch (kdfError) {
       return {
         success: false,
@@ -219,6 +239,8 @@ export class Sync {
     mergedVault: Vault;
     conflictsResolved: number;
     vaultUpdated: boolean;
+    localHasChanges: boolean;
+    remoteHasChanges: boolean;
   }> {
     const localHistory = localVault.history || [];
     const remoteHistory = remoteVault.history || [];
@@ -227,27 +249,39 @@ export class Sync {
     let mergedVault: Vault;
     let conflictsResolved = 0;
     let vaultUpdated = false;
+    let localHasChanges = false;
+    let remoteHasChanges = false;
 
     if (this.isHistoryPrefix(localHistory, remoteHistory)) {
-      // 本地是远程前缀 - 远程有新变更
-      mergedVault = remoteVault;
+      // 本地是远程前缀 - 远程有新变更，需要先合并远程变更到本地
+      const mergeResult = await this.mergeVaults(localVault, remoteVault);
+      mergedVault = mergeResult.mergedVault;
+      conflictsResolved = mergeResult.conflictsResolved;
       vaultUpdated = true;
+      remoteHasChanges = true;
+      // 保持远程历史，但包含本地数据
+      mergedVault.history = remoteVault.history;
     } else if (this.isHistoryPrefix(remoteHistory, localHistory)) {
       // 远程是本地前缀 - 本地有新变更
       mergedVault = localVault;
       vaultUpdated = false; // 合并逻辑不负责判断是否需要更新
+      localHasChanges = true;
     } else {
       // 分支历史 - 需要合并
       const mergeResult = await this.mergeVaults(localVault, remoteVault);
       mergedVault = mergeResult.mergedVault;
       conflictsResolved = mergeResult.conflictsResolved;
       vaultUpdated = true;
+      localHasChanges = true;
+      remoteHasChanges = true;
     }
-
+    mergedVault.sentinel = remoteVault.sentinel
     return {
       mergedVault,
       conflictsResolved,
-      vaultUpdated
+      vaultUpdated,
+      localHasChanges,
+      remoteHasChanges
     };
   }
 
@@ -339,9 +373,11 @@ export class Sync {
 
       if (!remoteVault) {
         // No remote vault - just push local vault
+        const currentVault = this.vaultManager.getVault();
         const finalVault = {
           ...localVault,
-          history: [...(localVault.history || []), this.generateSyncVersionId()]
+          history: [...(localVault.history || []), this.generateSyncVersionId()],
+          sentinel: currentVault.sentinel
         };
 
         await this.saveRemoteVault(finalVault);
@@ -372,21 +408,27 @@ export class Sync {
       }
 
       // Handle history relationship
-      const historyResult = await this.handleHistoryRelationship(this.vaultManager.getVault(), remoteVault);
+      const historyResult = await this.handleHistoryRelationship(localVault, remoteVault);
       let finalVault = historyResult.mergedVault;
       const conflictsResolved = historyResult.conflictsResolved;
 
-      // Push操作：添加新版本ID并推送
-      if (historyResult.vaultUpdated || this.isHistoryPrefix(remoteVault.history || [], localVault.history || [])) {
-        const newVersionId = this.generateSyncVersionId();
-        finalVault = {
-          ...finalVault,
-          history: [...(finalVault.history || []), newVersionId]
-        };
-      }
+      // Push操作：每次push都应该添加新版本ID，表示远程被更新了一次
+      const newVersionId = this.generateSyncVersionId();
+      finalVault = {
+        ...finalVault,
+        history: [...(finalVault.history || []), newVersionId]
+      };
 
       // Save merged vault to remote
       await this.saveRemoteVault(finalVault);
+
+      // 更新本地vault的历史记录以保持同步
+      // 无论是否有远程变更，都要更新本地历史记录以包含新的版本ID
+      this.vaultManager.setVault({
+        ...this.vaultManager.getVault(),
+        history: [...(finalVault.history || [])]
+      });
+      await this.vaultManager.saveVault();
 
       // Update sync status
       this.syncStatus.syncing = false;
@@ -468,17 +510,18 @@ export class Sync {
       }
 
       // Handle history relationship
-      const historyResult = await this.handleHistoryRelationship(this.vaultManager.getVault(), remoteVault);
+      const historyResult = await this.handleHistoryRelationship(localVault, remoteVault);
       let finalVault = historyResult.mergedVault;
       const conflictsResolved = historyResult.conflictsResolved;
       let vaultUpdated = historyResult.vaultUpdated;
 
-      // Pull操作：保持远程历史
-      if (vaultUpdated) {
+      // Pull操作：当远程有变更时，保持远程历史
+      if (historyResult.remoteHasChanges) {
         finalVault = {
           ...finalVault,
           history: [...(remoteVault.history || [])]
         };
+        vaultUpdated = true;
       }
 
       // Step 4: Update sync status
@@ -531,5 +574,6 @@ export class Sync {
    */
   destroy(): void {
     this.storageAdapter = null;
+    this.webdavConfig = null;
   }
 }

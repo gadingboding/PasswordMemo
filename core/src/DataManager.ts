@@ -769,8 +769,20 @@ export class DataManager {
   }
 
   async clearData() {
-    // this.vault = null
-    // this.userProfile = null
+    this.vault = {
+      records: {},
+      labels: {},
+      templates: {},
+      history: [],
+      kdf: {
+        ...DEFAULT_KDF_CONFIG,
+        params: {
+          ...DEFAULT_KDF_CONFIG.params,
+          salt: ''
+        }
+      }
+    }
+    this.userProfile = {}
     await LocalVaultFile.remove()
     await LocalUserProfileFile.remove()
   }

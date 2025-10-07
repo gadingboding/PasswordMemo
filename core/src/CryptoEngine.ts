@@ -118,21 +118,6 @@ export class CryptographyEngine {
   }
 
   /**
-   * Convert Uint8Array to hex string
-   */
-  static bytesToHex(bytes: Uint8Array): string {
-    let hexString = '';
-    for (let i = 0; i < bytes.length; i++) {
-      const byte = bytes[i];
-      if (byte !== undefined) {
-        const hex = byte.toString(16).padStart(2, '0');
-        hexString += hex;
-      }
-    }
-    return hexString;
-  }
-
-  /**
    * Generate a random nonce for specific algorithm
    */
   static async generateNonce(

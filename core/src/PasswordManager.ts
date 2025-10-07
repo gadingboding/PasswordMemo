@@ -25,7 +25,6 @@ import {Sync} from './Sync.js';
 import {WebDAVConfig} from './types/vault.js';
 import {KDFAdapter} from './KDFAdapter.js';
 import {configLocalStorage} from "./LocalStorage.js";
-import {WebDAVPermissions, createPermissions} from './Permissions.js';
 
 /**
  * Password Manager initialization configuration
@@ -791,6 +790,7 @@ export class PasswordManager {
     try {
       await this.vaultManager.clearData();
       this.vaultManager.clearMasterKey();
+      this.syncManager.destroy();
       this.initialized = false;
     } catch (error) {
       throw new Error(`Failed to reset password manager: ${error instanceof Error ? error.message : 'Unknown error'}`);
