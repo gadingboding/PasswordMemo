@@ -18,7 +18,7 @@ export default defineConfig({
         }
         
         // 复制图标文件
-        const iconSizes = [16, 48, 128, 256]
+        const iconSizes = [16, 32, 48, 128]
         iconSizes.forEach(size => {
           const srcIcon = resolve(iconsDir, `icon-${size}.png`)
           const destIcon = resolve(distIconsDir, `icon-${size}.png`)
