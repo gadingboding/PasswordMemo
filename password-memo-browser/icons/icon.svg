@@ -1,0 +1,37 @@
+<svg width="128" height="128" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="64" height="64" fill="white" fill-opacity="0"/>
+
+    <defs>
+        <filter id="bookShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+    </defs>
+
+
+    <rect x="12" y="10" width="40" height="44" rx="4" fill="#B0DAF0"/>
+    <rect x="14" y="12" width="36" height="40" rx="3" fill="#C0E1EB"/>
+    <rect x="16" y="14" width="32" height="36" rx="2" fill="#E0F2F7" filter="url(#bookShadow)"/>
+    <rect x="16" y="14" width="32" height="36" rx="2" stroke="#4A90E2" stroke-width="1.5"/>
+
+
+    <line x1="18" y1="20" x2="46" y2="20" stroke="#B0DAF0" stroke-width="1"/>
+    <line x1="18" y1="26" x2="46" y2="26" stroke="#B0DAF0" stroke-width="1"/>
+    <line x1="18" y1="32" x2="46" y2="32" stroke="#B0DAF0" stroke-width="1"/>
+    <line x1="18" y1="38" x2="46" y2="38" stroke="#B0DAF0" stroke-width="1"/>
+
+
+    <g transform="translate(23, 21.5)">
+
+        <g fill="#F8E71C" stroke="#B8A70B" stroke-width="1.5">
+
+            <circle cx="9" cy="8" r="5"/>
+
+            <rect x="7" y="13" width="4" height="12"/>
+
+            <rect x="11" y="18" width="4" height="2"/>
+            <rect x="11" y="22" width="4" height="2"/>
+        </g>
+
+        <circle cx="9" cy="8" r="2.5" fill="none" stroke="#B8A70B" stroke-width="1.5"/>
+    </g>
+</svg>
