@@ -105,6 +105,7 @@ export interface Vault {
  * WebDAV configuration
  */
 export interface WebDAVConfig {
+  type: 'webdav';
   url: string;
   username: string;
   password: string;
@@ -113,11 +114,25 @@ export interface WebDAVConfig {
 }
 
 /**
+ * GitHub configuration
+ */
+export interface GitHubConfig {
+  type: 'github';
+  token: string;
+  owner: string;
+  repo: string;
+  /** Custom path for GitHub storage (optional, defaults to 'vault.json') */
+  path?: string;
+}
+
+export type RemoteStorageConfig = WebDAVConfig | GitHubConfig;
+
+/**
  * User profile stored in local storage
  * Note: This is a single-user password manager, no username concept
  */
 export interface UserProfile {
-  webdav_config?: {
+  remote_config?: {
     encrypted_data: EncryptedData;
   };
 }

@@ -17,7 +17,7 @@ import {
   UserProfile,
   Vault,
   VaultLabel, VaultRecord,
-  VaultTemplate, WebDAVConfig
+  VaultTemplate, WebDAVConfig, RemoteStorageConfig
 } from './types/index.js';
 import {CryptographyEngine} from './CryptoEngine.js';
 import {KDFAdapter} from './KDFAdapter.js';
@@ -709,17 +709,17 @@ export class DataManager {
   async reEncryptWebDAVConfig(oldMasterKey: BinaryData, newMasterKey: BinaryData): Promise<void> {
     try {
       // Check if WebDAV configuration exists
-      if (!this.userProfile.webdav_config) {
+      if (!this.userProfile.remote_config) {
         // No WebDAV configuration to re-encrypt
         return;
       }
 
       // Decrypt WebDAV configuration with old master key
-      const encryptedData = this.userProfile.webdav_config.encrypted_data;
+      const encryptedData = this.userProfile.remote_config.encrypted_data;
       const decryptedConfigJson = await CryptographyEngine.decryptToString(encryptedData, oldMasterKey);
 
       // Re-encrypt WebDAV configuration with new master key
-      this.userProfile.webdav_config.encrypted_data = await CryptographyEngine.encrypt(decryptedConfigJson, newMasterKey);
+      this.userProfile.remote_config.encrypted_data = await CryptographyEngine.encrypt(decryptedConfigJson, newMasterKey);
     } catch (error) {
       throw new Error(`Failed to re-encrypt WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -787,11 +787,11 @@ export class DataManager {
     await LocalUserProfileFile.remove()
   }
 
-  async getWebDAVConfig(): Promise<WebDAVConfig | null> {
+  async getRemoteConfig(): Promise<RemoteStorageConfig | null> {
     try {
-      const encryptedData = this.userProfile.webdav_config?.encrypted_data!;
+      const encryptedData = this.userProfile.remote_config?.encrypted_data!;
       const decryptedData = await CryptographyEngine.decryptToString(encryptedData, this.masterKey!);
-      return JSON.parse(decryptedData) as WebDAVConfig;
+      return JSON.parse(decryptedData) as RemoteStorageConfig;
     } catch (error) {
       return null;
     }
@@ -800,11 +800,15 @@ export class DataManager {
   /**
    * Save WebDAV configuration (encrypted)
    */
-  async setWebDAVConfig(config: WebDAVConfig): Promise<void> {
+  async setRemoteConfig(config?: RemoteStorageConfig): Promise<void> {
     try {
+      if (!config) {
+        delete this.userProfile.remote_config;
+        return;
+      }
       const configJson = JSON.stringify(config);
       const encryptedData = await CryptographyEngine.encrypt(configJson, this.masterKey!);
-      this.userProfile.webdav_config = {encrypted_data: encryptedData};
+      this.userProfile.remote_config = {encrypted_data: encryptedData};
     } catch (error) {
       throw new Error('Failed to save WebDAV configuration');
     }
