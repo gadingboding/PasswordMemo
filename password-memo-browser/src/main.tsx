@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import { initializeI18n } from './i18n' // Import i18n initialization
+import { ThemeProvider } from './components/ThemeProvider.tsx'
 
 // Initialize sodium for cryptographic operations
 import _sodium from 'libsodium-wrappers'
@@ -15,7 +16,9 @@ async function initializeApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <BrowserRouter>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </BrowserRouter>
     </StrictMode>,
   )
