@@ -166,7 +166,8 @@
     "returningUser": "已有账户？",
     "returningUserDesc": "输入您现有的主密码。",
     "processing": "处理中...",
-    "continue": "继续"
+    "continue": "继续",
+    "forgotPassword": "忘记密码？"
   },
   "initialization": {
     "title": "设置密码管理器",
