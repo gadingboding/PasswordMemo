@@ -29,6 +29,7 @@
   "dependencies": {
     "libsodium-wrappers-sumo": "^0.7.15",
     "uuid": "^11.1.0",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": "^4.4.2",
+    "octokit": "^4.0.2"
   }
 }

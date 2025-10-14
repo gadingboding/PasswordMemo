@@ -6,19 +6,21 @@
  */
 
 import {v4 as uuidv4} from 'uuid';
-import {Vault, WebDAVConfig} from './types/vault.js';
+import {Vault, WebDAVConfig, RemoteStorageConfig, GitHubConfig} from './types/vault.js';
 import {PullResult, PushResult, SyncStatus} from './types/sync.js';
 import {DataManager} from './DataManager.js';
 import {IRemoteStorage, WebDAVRemoteStorage} from './RemoteStorage.js';
 import {CryptographyEngine} from "./CryptoEngine.js";
+import {GitHubRemoteStorage} from "./GitHubStorage.js";
 
+const VAULT_FILE_NAME = 'vault.json';
 /**
  * Sync Manager for handling synchronization
  */
 export class Sync {
   private storageAdapter: IRemoteStorage | null = null;
   private vaultManager: DataManager;
-  private webdavConfig: WebDAVConfig | null = null;
+  private remoteConfig: RemoteStorageConfig | null = null;
   private syncStatus: SyncStatus = {
     syncing: false,
     pendingChanges: 0
@@ -31,13 +33,16 @@ export class Sync {
   /**
    * Initialize storage adapter with configuration
    */
-  async initializeStorage(config?: WebDAVConfig): Promise<void> {
+  async initializeStorage(config: RemoteStorageConfig): Promise<void> {
     try {
-      if (!config) {
-        config = (await this.vaultManager.getWebDAVConfig())!;
+      this.remoteConfig = config;
+      if (config.type === 'webdav') {
+        this.storageAdapter = new WebDAVRemoteStorage(config);
+      } else if (config.type === 'github') {
+        this.storageAdapter = new GitHubRemoteStorage(config);
+      } else {
+        throw new Error('Unsupported remote storage type');
       }
-      this.webdavConfig = config;
-      this.storageAdapter = new WebDAVRemoteStorage(config);
     } catch (error) {
       throw new Error(`Storage connection failed: ${error}`);
     }
@@ -135,36 +140,6 @@ export class Sync {
     return {mergedVault, conflictsResolved};
   }
 
-  /**
-   * Get WebDAV paths from configuration
-   * @returns Object containing both file path and directory path
-   */
-  private getWebDAVPaths(): { filePath: string; directoryPath: string } {
-    if (!this.webdavConfig) {
-      throw new Error('WebDAV configuration not initialized');
-    }
-
-    // Use custom path if provided, otherwise default to '/password-note/vault.json'
-    let filePath: string;
-    const customPath = this.webdavConfig.path;
-    if (customPath) {
-      // Normalize path - ensure it starts with a slash
-      filePath = customPath.startsWith('/') ? customPath : `/${customPath}`;
-    } else {
-      filePath = '/password-note/vault.json';
-    }
-
-    // Extract directory from file path
-    const lastSlashIndex = filePath.lastIndexOf('/');
-    let directoryPath: string;
-    if (lastSlashIndex <= 0) {
-      directoryPath = ''; // Root directory
-    } else {
-      directoryPath = filePath.substring(0, lastSlashIndex);
-    }
-
-    return {filePath, directoryPath};
-  }
 
   /**
    * 对齐本地和远程KDF配置
@@ -293,19 +268,13 @@ export class Sync {
       throw new Error('Storage adapter not initialized');
     }
 
-    const {filePath: vaultPath} = this.getWebDAVPaths();
-
     try {
-      // Try to download the file
-      const remoteData = await this.storageAdapter.download(vaultPath);
+      const remoteData = await this.storageAdapter.download(VAULT_FILE_NAME);
       return JSON.parse(remoteData) as Vault;
     } catch (error) {
-      // File might not exist yet, which is fine
       if (error instanceof Error && error.message.includes('File not found')) {
         return null;
       }
-
-      // For any other error, assume the file doesn't exist
       return null;
     }
   }
@@ -318,30 +287,10 @@ export class Sync {
       throw new Error('Storage adapter not initialized');
     }
 
-    const {filePath: vaultPath, directoryPath} = this.getWebDAVPaths();
-
-    try {
-      const vaultJson = JSON.stringify(vault, null, 2);
-
-      // First, ensure the directory exists (unless it's the root directory)
-      if (directoryPath && directoryPath !== '/') {
-        try {
-          await this.storageAdapter.createDirectory(directoryPath);
-        } catch (dirError) {
-          // Directory might already exist, which is fine
-          if (dirError instanceof Error && !dirError.message.includes('Method Not Allowed')) {
-            throw dirError;
-          }
-        }
-      }
-
-      // Save the vault file in the directory
-      await this.storageAdapter.upload(vaultPath, vaultJson, {
-        overwrite: true
-      });
-    } catch (error) {
-      throw error;
-    }
+    const vaultJson = JSON.stringify(vault, null, 2);
+    await this.storageAdapter.upload(VAULT_FILE_NAME, vaultJson, {
+      overwrite: true,
+    });
   }
 
   /**
@@ -553,15 +502,20 @@ export class Sync {
   }
 
   /**
-   * Test WebDAV connection with provided configuration
-   * @param config WebDAV configuration to test
+   * Test Remote connection with provided configuration
+   * @param config RemoteStorageConfig configuration to test
    * @returns True if connection is successful, false otherwise
    */
-  async testWebDAVConnection(config: WebDAVConfig): Promise<boolean> {
+  async testRemoteConnection(config: RemoteStorageConfig): Promise<boolean> {
     try {
-      // Create a temporary storage adapter for testing
-      const tempStorage = new WebDAVRemoteStorage(config);
-      // Test connection by checking if the root directory exists
+      let tempStorage: IRemoteStorage;
+      if (config.type === 'webdav') {
+        tempStorage = new WebDAVRemoteStorage(config);
+      } else if (config.type === 'github') {
+        tempStorage = new GitHubRemoteStorage(config);
+      } else {
+        return false;
+      }
       await tempStorage.exists('/');
       return true;
     } catch (error) {
@@ -574,6 +528,6 @@ export class Sync {
    */
   destroy(): void {
     this.storageAdapter = null;
-    this.webdavConfig = null;
+    this.remoteConfig = null;
   }
 }

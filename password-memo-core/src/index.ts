@@ -17,6 +17,8 @@ export {CryptographyEngine} from './CryptoEngine.js';
 export {DataManager} from './DataManager.js';
 export {Sync} from './Sync.js';
 export {KDFAdapter} from './KDFAdapter.js';
+export { WebDAVRemoteStorage } from './RemoteStorage.js';
+export { GitHubRemoteStorage } from './GitHubStorage.js';
 
 // Export constants
 export * from './Constants.js';

@@ -15,7 +15,7 @@ import {
   TemplateField,
   VaultLabel,
   VaultTemplate,
-  PasswordComplexityResult, Vault
+  PasswordComplexityResult, Vault, RemoteStorageConfig
 } from './types/index.js';
 
 
@@ -38,8 +38,8 @@ export interface PasswordManagerConfig {
     namespace?: string;
   },
 
-  /** WebDAV configuration for remote storage */
-  webdav?: WebDAVConfig,
+  /** Remote storage configuration */
+  remote?: RemoteStorageConfig,
 
   /** Whether to pull remote vault after WebDAV configuration */
   pullRemoteVault?: boolean
@@ -92,7 +92,7 @@ export class PasswordManager {
     return PasswordManager.instance;
   }
 
-  private async initializeLocal(masterPassword: MasterPassword, webdavConfig?: WebDAVConfig): Promise<void> {
+  private async initializeLocal(masterPassword: MasterPassword, webdavConfig?: RemoteStorageConfig): Promise<void> {
     const kdfSalt = await CryptographyEngine.generateSalt();
     const kdfConfig = {
       ...DEFAULT_KDF_CONFIG,
@@ -109,12 +109,12 @@ export class PasswordManager {
     await this.vaultManager.saveUserProfile()
     await this.vaultManager.saveVault();
     if (webdavConfig) {
-      await this.vaultManager.setWebDAVConfig(webdavConfig);
+      await this.vaultManager.setRemoteConfig(webdavConfig);
       await this.vaultManager.saveUserProfile();
     }
   }
 
-  private async initializeRemote(masterPassword: MasterPassword, webdavConfig: WebDAVConfig, remoteVault: Vault) {
+  private async initializeRemote(masterPassword: MasterPassword, webdavConfig: RemoteStorageConfig, remoteVault: Vault) {
     // Use remote vault's KDF configuration
     this.vaultManager.setKDFConfig(remoteVault.kdf);
 
@@ -124,7 +124,7 @@ export class PasswordManager {
     await this.vaultManager.setMasterKey(remoteMasterKeyResult.key);
 
     this.vaultManager.setVault(remoteVault);
-    await this.vaultManager.setWebDAVConfig(webdavConfig);
+    await this.vaultManager.setRemoteConfig(webdavConfig);
     await this.vaultManager.saveVault();
     await this.vaultManager.saveUserProfile();
   }
@@ -157,17 +157,17 @@ export class PasswordManager {
       if (!complexity.isAcceptable) {
         throw new Error(`Password is too weak. ${complexity.warning.join(' ')} ${complexity.suggestions.join(' ')}`);
       }
-      // Handle WebDAV configuration if provided
-      if (config.webdav && config.pullRemoteVault) {
+      // Handle Remote configuration if provided
+      if (config.remote && config.pullRemoteVault) {
         // Try to load remote vault if pullRemoteVault is true
-        await this.syncManager.initializeStorage(config.webdav)
+        await this.syncManager.initializeStorage(config.remote)
         const remoteVault = await this.syncManager.loadRemoteVault();
         if (!remoteVault || !remoteVault.kdf) {
           throw new Error('Failed to load remote vault or KDF configuration missing in remote vault');
         }
-        await this.initializeRemote(masterPassword, config.webdav, remoteVault);
+        await this.initializeRemote(masterPassword, config.remote, remoteVault);
       } else {
-        await this.initializeLocal(masterPassword, config.webdav);
+        await this.initializeLocal(masterPassword, config.remote);
       }
       this.initialized = true;
     } catch (error) {
@@ -645,7 +645,7 @@ export class PasswordManager {
    * Configure WebDAV settings
    * @param webdavConfig WebDAV configuration
    */
-  async configureWebDAV(webdavConfig: WebDAVConfig): Promise<void> {
+  async configureWebDAV(webdavConfig: RemoteStorageConfig): Promise<void> {
     this.ensureInitialized();
 
     if (!this.isUnlocked()) {
@@ -653,7 +653,7 @@ export class PasswordManager {
     }
 
     try {
-      await this.vaultManager.setWebDAVConfig(webdavConfig);
+      await this.vaultManager.setRemoteConfig(webdavConfig);
       await this.vaultManager.saveUserProfile();
     } catch (error) {
       throw new Error(`Failed to configure WebDAV: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -672,11 +672,7 @@ export class PasswordManager {
 
     try {
       // Clear WebDAV configuration by saving empty config
-      await this.vaultManager.setWebDAVConfig({
-        url: '',
-        username: '',
-        password: ''
-      });
+      await this.vaultManager.setRemoteConfig(undefined);
       await this.vaultManager.saveUserProfile();
     } catch (error) {
       throw new Error(`Failed to clear WebDAV configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -690,7 +686,7 @@ export class PasswordManager {
    */
   async push(password?: string): Promise<PushResult> {
     this.ensureInitialized();
-    await this.initializeWebDAVIfConfigured();
+    await this.initializeRemoteIfConfigured();
 
     try {
       const vault = this.vaultManager.getVault();
@@ -713,7 +709,7 @@ export class PasswordManager {
    */
   async pull(password?: string): Promise<PullResult> {
     this.ensureInitialized();
-    await this.initializeWebDAVIfConfigured();
+    await this.initializeRemoteIfConfigured();
     try {
       const vault = this.vaultManager.getVault();
       const result = await this.syncManager.pull(vault, password);
@@ -749,35 +745,38 @@ export class PasswordManager {
   }
 
   /**
-   * Get current WebDAV configuration (decrypted)
+   * Get current Remote configuration (decrypted)
    */
-  async getWebDAVConfig(): Promise<WebDAVConfig | null> {
+  async getRemoteConfig(): Promise<RemoteStorageConfig | null> {
     try {
-      return await this.vaultManager.getWebDAVConfig();
+      return await this.vaultManager.getRemoteConfig();
     } catch (error) {
       return null;
     }
   }
 
   /**
-   * Test WebDAV connection with provided configuration
-   * @param config WebDAV configuration to test
+   * Test Remote connection with provided configuration
+   * @param config RemoteStorageConfig configuration to test
    * @returns True if connection is successful, false otherwise
    */
-  async testWebDAVConnection(config: WebDAVConfig): Promise<boolean> {
-    return await this.syncManager.testWebDAVConnection(config);
+  async testRemoteConnection(config: RemoteStorageConfig): Promise<boolean> {
+    return await this.syncManager.testRemoteConnection(config);
   }
 
   /**
-   * Initialize WebDAV client if configuration exists
+   * Initialize Remote client if configuration exists
    * @private
    */
-  private async initializeWebDAVIfConfigured(): Promise<void> {
-    try {
-      await this.syncManager.initializeStorage();
-    } catch (error) {
-      // Silently ignore WebDAV initialization errors on startup
-      console.warn('Failed to initialize WebDAV on unlock:', error);
+  private async initializeRemoteIfConfigured(): Promise<void> {
+    const remoteConfig = await this.getRemoteConfig();
+    if (remoteConfig) {
+      try {
+        await this.syncManager.initializeStorage(remoteConfig);
+      } catch (error) {
+        // Silently ignore WebDAV initialization errors on startup
+        console.warn('Failed to initialize remote on unlock:', error);
+      }
     }
   }
 
