@@ -169,7 +169,8 @@
     "returningUser": "Returning user?",
     "returningUserDesc": "Enter your existing master password.",
     "processing": "Processing...",
-    "continue": "Continue"
+    "continue": "Continue",
+    "forgotPassword": "Forgot your password?"
   },
   "initialization": {
     "title": "Setup Password Manager",

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Lock } from 'lucide-react'
+import { Lock, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PasswordManager } from 'password-memo-core'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
+import { Dialog, DialogFooter } from '@/components/ui/Dialog'
 import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LoginPage() {
@@ -13,6 +14,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
   const [showInitialization, setShowInitialization] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
   
   const { login, isLoading, error, clearError, setPasswordManager } = useAuthStore()
 
@@ -55,6 +58,26 @@ export function LoginPage() {
 
   const handleSetupNewVault = () => {
     setShowInitialization(true)
+  }
+
+  const handleReset = async () => {
+    setIsResetting(true)
+    try {
+      // Get the singleton instance without needing to be authenticated
+      const manager = PasswordManager.getInstance()
+      await manager.reset()
+
+      // After reset, re-check initialization status
+      // This will set isInitialized to false and show the InitializationFlow
+      await checkInitializationStatus()
+
+      setShowResetDialog(false)
+    } catch (err) {
+      console.error('Reset failed:', err)
+      // Optionally, show an error message to the user
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   // Show loading while checking initialization status
@@ -138,10 +161,57 @@ export function LoginPage() {
               >
                 {isLoading ? t('login.processing') : t('login.continue')}
               </Button>
+
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowResetDialog(true)}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline"
+                >
+                  {t('login.forgotPassword')}
+                </button>
+              </div>
             </form>
           </CardContent>
         </Card>
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      <Dialog
+        open={showResetDialog}
+        onClose={() => setShowResetDialog(false)}
+        title={t('settings.resetConfirmTitle')}
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600">{t('settings.resetConfirmMessage')}</p>
+          <div className="bg-red-100 border border-red-300 rounded-md p-3">
+            <p className="text-sm text-red-700 font-medium">{t('settings.resetFinalWarning')}</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setShowResetDialog(false)}
+            disabled={isResetting}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleReset}
+            disabled={isResetting}
+          >
+            {isResetting ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                {t('settings.resetting')}
+              </>
+            ) : (
+              t('settings.confirmReset')
+            )}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   )
 }
