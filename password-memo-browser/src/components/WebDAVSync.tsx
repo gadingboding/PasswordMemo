@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { Save, Server, Upload, Download } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { PasswordInput } from '@/components/ui/PasswordInput'
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { useToastContext } from '@/contexts/ToastContext'
+import {WebDAVForm} from "@components/WebDAVForm.tsx";
 
 export function WebDAVSync() {
   const { t } = useTranslation()
@@ -284,40 +284,8 @@ export function WebDAVSync() {
                 ? t('sync.webdavConfig') + ' - ' + t('common.settings')
                 : t('sync.webdavConfig')}
             </h3>
-            
             <form onSubmit={handleConfigureWebDAV} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.webdavUrl')}</label>
-                <Input
-                  type="url"
-                  placeholder={t('initialization.webDAVUrlPlaceholder')}
-                  value={webdavConfig.url}
-                  onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
-                  required
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.username')}</label>
-                <Input
-                  type="text"
-                  placeholder={t('sync.username')}
-                  value={webdavConfig.username}
-                  onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
-                  required
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.password')}</label>
-                <PasswordInput
-                  placeholder={t('sync.password')}
-                  value={webdavConfig.password}
-                  onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
-                  required
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
+              <WebDAVForm webdavConfig={webdavConfig} setWebdavConfig={setWebdavConfig}/>
               <div className="flex gap-2">
                 <Button 
                   type="submit" 

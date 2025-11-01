@@ -1,23 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Lock, Server, Check, AlertCircle } from 'lucide-react'
-import { PasswordManager, DEFAULT_STORAGE_NAMESPACE } from 'password-memo-core'
+import {PasswordManager, DEFAULT_STORAGE_NAMESPACE, WebDAVConfig} from 'password-memo-core'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Stepper } from '@/components/ui/Stepper'
 import { useToastContext } from '@/contexts/ToastContext'
+import {WebDAVForm} from "@components/WebDAVForm.tsx";
 
 interface InitializationFlowProps {
   onComplete: (passwordManager: PasswordManager) => void
 }
 
-interface WebDAVConfig {
-  url: string
-  username: string
-  password: string
-}
 
 export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   const { t } = useTranslation()
@@ -316,45 +311,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
         ) : (
           <div className="space-y-4">
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">
-                  {t('initialization.webDAVUrlLabel')}
-                </label>
-                <Input
-                  type="url"
-                  placeholder={t('initialization.webDAVUrlPlaceholder')}
-                  value={webdavConfig.url}
-                  onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">
-                    {t('initialization.usernameLabel')}
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder={t('initialization.usernamePlaceholder')}
-                    value={webdavConfig.username}
-                    onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-200 mb-2">
-                    {t('initialization.webDAVPasswordLabel')}
-                  </label>
-                  <PasswordInput
-                    placeholder={t('initialization.webDAVPasswordPlaceholder')}
-                    value={webdavConfig.password}
-                    onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                </div>
-              </div>
-
+              <WebDAVForm webdavConfig={webdavConfig} setWebdavConfig={setWebdavConfig}/>
               <div className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg">
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input
