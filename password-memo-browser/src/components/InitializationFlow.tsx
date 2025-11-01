@@ -20,7 +20,7 @@ interface WebDAVConfig {
 }
 
 export function InitializationFlow({ onComplete }: InitializationFlowProps) {
-  const { t, ready } = useTranslation()
+  const { t } = useTranslation()
   const { showError } = useToastContext()
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -46,13 +46,13 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   const steps = [
     {
       id: 'webdav',
-      title: ready ? t('initialization.step2Title') : 'WebDAV Sync',
-      description: ready ? t('initialization.step2Desc') : 'Configure remote synchronization (optional)'
+      title: t('initialization.step2Title'),
+      description: t('initialization.step2Desc')
     },
     {
       id: 'password',
-      title: ready ? t('initialization.step1Title') : 'Master Password',
-      description: ready ? t('initialization.step1Desc') : 'Create a strong master password to protect your vault'
+      title: t('initialization.step1Title'),
+      description: t('initialization.step1Desc')
     }
   ]
 
@@ -73,11 +73,11 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
 
   const validatePasswordStep = () => {
     if (!password.trim()) {
-      showError(ready ? t('initialization.passwordRequired') : 'Master password is required')
+      showError(t('initialization.passwordRequired'))
       return false
     }
     if (password !== confirmPassword) {
-      showError(ready ? t('initialization.passwordMismatch') : 'Passwords do not match')
+      showError(t('initialization.passwordMismatch'))
       return false
     }
     const complexity = passwordManager.checkPasswordComplexity(password)
@@ -97,7 +97,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     
     // If user chose to configure but hasn't saved the configuration yet
     if (configureWebDAV && !webdavConfigured) {
-      showError('Please save your WebDAV configuration or cancel to proceed')
+      showError(t('errors.initialization.saveWebdavOrCancel'))
       return false
     }
     
@@ -135,18 +135,18 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
         setConnectionTestResult('success')
       } else {
         setConnectionTestResult('error')
-        setConnectionError(ready ? t('initialization.connectionFailed', { error: 'Unknown error' }) : 'Connection failed: Unknown error')
+        setConnectionError(t('initialization.connectionFailed', { error: 'Unknown error' }))
       }
     } catch (error) {
       setConnectionTestResult('error')
       const errorMessage = error instanceof Error ? error.message : String(error)
-      setConnectionError(ready ? t('initialization.connectionFailed', { error: errorMessage }) : `Connection failed: ${errorMessage}`)
+      setConnectionError(t('initialization.connectionFailed', { error: errorMessage }))
     }
   }
 
   const saveWebDAVConfig = async () => {
     if (!webdavConfig.url.trim() || !webdavConfig.username.trim() || !webdavConfig.password.trim()) {
-      showError('Please fill in all WebDAV configuration fields')
+      showError(t('errors.initialization.pleaseFillWebdavFields'))
       return
     }
     
@@ -203,11 +203,11 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
       <div className="space-y-4">
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-2">
-            {ready ? t('initialization.masterPasswordLabel') : 'Master Password'}
+            {t('initialization.masterPasswordLabel')}
           </label>
           <PasswordInput
             id="password"
-            placeholder={ready ? t('initialization.masterPasswordPlaceholder') : 'Enter a strong master password'}
+            placeholder={t('initialization.masterPasswordPlaceholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
@@ -217,11 +217,11 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
         
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-200 mb-2">
-            {ready ? t('initialization.confirmPasswordLabel') : 'Confirm Password'}
+            {t('initialization.confirmPasswordLabel')}
           </label>
           <PasswordInput
             id="confirmPassword"
-            placeholder={ready ? t('initialization.confirmPasswordPlaceholder') : 'Confirm your master password'}
+            placeholder={t('initialization.confirmPasswordPlaceholder')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
@@ -300,7 +300,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
         {!configureWebDAV ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-300">
-              {ready ? t('sync.webdavConfigDesc') : 'Configure WebDAV server for syncing your vault across devices'}
+              {t('sync.webdavConfigDesc')}
             </p>
             <div className="flex items-center space-x-4">
               <Button
@@ -309,7 +309,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Server className="h-4 w-4 mr-2" />
-                {ready ? t('initialization.configureWebDAV') : 'Configure WebDAV'}
+                {t('initialization.configureWebDAV')}
               </Button>
             </div>
           </div>
@@ -318,11 +318,11 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-200 mb-2">
-                  {ready ? t('initialization.webDAVUrlLabel') : 'WebDAV URL'}
+                  {t('initialization.webDAVUrlLabel')}
                 </label>
                 <Input
                   type="url"
-                  placeholder={ready ? t('initialization.webDAVUrlPlaceholder') : 'https://your-webdav-server.com/dav'}
+                  placeholder={t('initialization.webDAVUrlPlaceholder')}
                   value={webdavConfig.url}
                   onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
@@ -332,11 +332,11 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-200 mb-2">
-                    {ready ? t('initialization.usernameLabel') : 'Username'}
+                    {t('initialization.usernameLabel')}
                   </label>
                   <Input
                     type="text"
-                    placeholder={ready ? t('initialization.usernamePlaceholder') : 'Enter username'}
+                    placeholder={t('initialization.usernamePlaceholder')}
                     value={webdavConfig.username}
                     onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
                     className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
@@ -344,10 +344,10 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-200 mb-2">
-                    {ready ? t('initialization.webDAVPasswordLabel') : 'WebDAV Password'}
+                    {t('initialization.webDAVPasswordLabel')}
                   </label>
                   <PasswordInput
-                    placeholder={ready ? t('initialization.webDAVPasswordPlaceholder') : 'Enter WebDAV password'}
+                    placeholder={t('initialization.webDAVPasswordPlaceholder')}
                     value={webdavConfig.password}
                     onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
                     className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
@@ -365,10 +365,10 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                   />
                   <div>
                     <div className="text-sm font-medium text-white">
-                      {ready ? t('initialization.pullRemoteVault') : 'Pull existing vault from server'}
+                      {t('initialization.pullRemoteVault')}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {ready ? t('initialization.pullRemoteVaultDesc') : 'If you have an existing vault on the server, we can download it now'}
+                      {t('initialization.pullRemoteVaultDesc')}
                     </div>
                   </div>
                 </label>
@@ -378,7 +378,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                 <div className="p-3 bg-green-900/20 border border-green-600/30 rounded-md text-sm text-green-400">
                   <div className="flex items-center">
                     <Check className="h-4 w-4 mr-2" />
-                    {ready ? t('initialization.connectionSuccess') : 'Connection successful!'}
+                    {t('initialization.connectionSuccess')}
                   </div>
                 </div>
               )}
@@ -400,10 +400,10 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                   {connectionTestResult === 'testing' ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {ready ? t('initialization.processing') : 'Testing...'}
+                      {t('initialization.processing')}
                     </div>
                   ) : (
-                    ready ? t('sync.testConnection') : 'Test Connection'
+                    t('sync.testConnection')
                   )}
                 </Button>
                 <Button
@@ -412,7 +412,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                   disabled={!webdavConfig.url.trim() || !webdavConfig.username.trim() || !webdavConfig.password.trim()}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {ready ? t('common.save') : 'Save'}
+                  {t('common.save')}
                 </Button>
                 <Button
                   type="button"
@@ -420,7 +420,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                   onClick={cancelWebDAVConfig}
                   className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
-                  {ready ? t('common.cancel') : 'Cancel'}
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -437,10 +437,10 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
           <div className="text-center">
             <Lock className="mx-auto h-10 w-10 text-blue-400" />
             <h2 className="mt-4 text-2xl font-bold text-white">
-              {ready ? t('initialization.title') : 'Setup Password Manager'}
+              {t('initialization.title')}
             </h2>
             <p className="mt-2 text-sm text-slate-400">
-              {ready ? t('initialization.subtitle') : "Let's set up your password vault"}
+              {t('initialization.subtitle')}
             </p>
           </div>
 
@@ -464,7 +464,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                     disabled={loading}
                     className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   >
-                    {ready ? t('initialization.back') : 'Back'}
+                    {t('initialization.back')}
                   </Button>
                 )}
                 
@@ -479,14 +479,14 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         {currentStep === 1
-                          ? (ready ? t('initialization.configuringSync') : 'Configuring synchronization...')
-                          : (ready ? t('initialization.processing') : 'Processing...')
+                          ? t('initialization.configuringSync')
+                          : t('initialization.processing')
                         }
                       </div>
                     ) : (
                       currentStep === 1
-                        ? (ready ? t('initialization.finish') : 'Finish')
-                        : (ready ? t('initialization.next') : 'Next')
+                        ? t('initialization.finish')
+                        : t('initialization.next')
                     )}
                   </Button>
                 </div>

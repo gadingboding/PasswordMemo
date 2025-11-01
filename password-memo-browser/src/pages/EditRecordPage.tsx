@@ -116,7 +116,7 @@ export function EditRecordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passwordManager || !formData.title.trim() || !id) {
-      showError(t('recordForm.pleaseFillRequiredFields'))
+      showError(t('errors.records.pleaseFillRequiredFields'))
       return
     }
 

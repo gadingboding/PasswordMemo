@@ -8,7 +8,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { InitializationFlow } from '@/components/InitializationFlow'
 
 export function LockOverlay() {
-  const { t, ready } = useTranslation()
+  const {t} = useTranslation()
   const { login, setPasswordManager } = useAuthStore()
   const [masterPassword, setMasterPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -52,13 +52,13 @@ export function LockOverlay() {
     try {
       const success = await login(masterPassword)
       if (!success) {
-        setError(ready ? t('auth.incorrectPassword') : 'Invalid master password. Please try again.')
+        setError(t('auth.incorrectPassword'))
         setMasterPassword('')
       }
       // 如果成功，组件会自动隐藏因为isAuthenticated变为true
     } catch (err) {
       console.error('Login failed:', err)
-      setError(ready ? t('auth.incorrectPassword') : 'Authentication failed. Please try again.')
+      setError(t('auth.incorrectPassword'))
       setMasterPassword('')
     } finally {
       setLoading(false)
@@ -101,8 +101,8 @@ export function LockOverlay() {
 
         {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">{ready ? t('auth.lock') : 'Vault Locked'}</h1>
-          <p className="text-slate-400">{ready ? t('auth.enterPassword') : 'Enter your master password to unlock'}</p>
+          <h1 className="text-2xl font-bold text-white mb-2">{t('auth.lock')}</h1>
+          <p className="text-slate-400">{t('auth.enterPassword')}</p>
         </div>
 
         {/* Unlock Form */}
@@ -110,13 +110,13 @@ export function LockOverlay() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label htmlFor="masterPassword" className="block text-sm font-medium text-slate-200">
-                {ready ? t('auth.masterPassword') : 'Master Password'}
+                {t('auth.masterPassword')}
               </label>
               <PasswordInput
                 id="masterPassword"
                 value={masterPassword}
                 onChange={(e) => setMasterPassword(e.target.value)}
-                placeholder={ready ? t('auth.enterPassword') : 'Enter master password'}
+                placeholder={t('auth.enterPassword')}
                 className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 required
                 autoFocus
@@ -138,12 +138,12 @@ export function LockOverlay() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {ready ? t('common.loading') : 'Unlocking...'}
+                    {t('common.loading')}
                   </div>
                 ) : (
                   <>
                     <Lock className="h-4 w-4 mr-2" />
-                    {ready ? t('auth.unlock') : 'Unlock Vault'}
+                    {t('auth.unlock')}
                   </>
                 )}
               </Button>

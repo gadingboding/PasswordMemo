@@ -28,11 +28,11 @@ export function SettingsPage() {
     try {
       // Update i18n language
       await i18n.changeLanguage(languageCode)
-      
+
       // Update app settings
       const settingsManager = AppSettingsManager.getInstance()
       await settingsManager.updateSetting('language', languageCode)
-      
+
       setCurrentLanguage(languageCode)
     } catch (error) {
       console.error('Failed to change language:', error)

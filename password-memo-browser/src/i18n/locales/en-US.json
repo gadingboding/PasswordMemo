@@ -141,7 +141,10 @@
     "resetConfirmMessage": "Are you sure you want to reset the password manager? This will delete all data and return to the initial setup state.",
     "resetFinalWarning": "This action will permanently delete all data, including your vault, user configuration, and all records. This action cannot be undone.",
     "confirmReset": "Confirm Reset",
-    "resetting": "Resetting..."
+    "resetting": "Resetting...",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   },
   "dialogs": {
     "confirmDelete": "Confirm to delete this item?",
@@ -184,7 +187,7 @@
     "configureWebDAV": "Configure WebDAV",
     "skipWebDAV": "Skip for now",
     "webDAVUrlLabel": "WebDAV URL",
-    "webDAVUrlPlaceholder": "https://your-webdav-server.com/dav",
+    "webDAVUrlPlaceholder": "WebDAV server URL",
     "usernameLabel": "Username",
     "usernamePlaceholder": "Enter username",
     "webDAVPasswordLabel": "WebDAV Password",
@@ -306,5 +309,22 @@
     "success": "Success",
     "error": "Error",
     "info": "Info"
+  },
+  "errors": {
+    "authentication": {
+      "incorrectPassword": "Incorrect master password. Please check your password and try again."
+    },
+    "webdav": {
+      "unlockRequired": "Please unlock your vault first to configure WebDAV settings"
+    },
+    "records": {
+      "pleaseFillRequiredFields": "Please fill in all required fields"
+    },
+    "initialization": {
+      "passwordRequired": "Master password is required",
+      "passwordMismatch": "Passwords do not match",
+      "pleaseFillWebdavFields": "Please fill in all WebDAV configuration fields",
+      "saveWebdavOrCancel": "Please save your WebDAV configuration or cancel to proceed"
+    }
   }
 }

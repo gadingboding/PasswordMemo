@@ -10,7 +10,7 @@ import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { useToastContext } from '@/contexts/ToastContext'
 
 export function WebDAVSync() {
-  const { t, ready } = useTranslation()
+  const { t } = useTranslation()
   const { passwordManager, isAuthenticated } = useAuthStore()
   const { showSuccess, showError } = useToastContext()
   const [webdavConfig, setWebdavConfig] = useState({
@@ -98,7 +98,7 @@ export function WebDAVSync() {
 
     // WebDAV configuration should only be saved in the password manager for security
     if (!isAuthenticated || !passwordManager || !passwordManager.isUnlocked()) {
-      showError(ready ? t('sync.webdavConfigLocked') : 'Please unlock your vault first to configure WebDAV settings')
+      showError(t('sync.webdavConfigLocked'))
       return
     }
 
@@ -108,10 +108,10 @@ export function WebDAVSync() {
       await passwordManager.configureWebDAV(webdavConfig)
       
       setIsConfigured(true)
-      showSuccess(ready ? t('sync.webdavConfigSaved') : 'WebDAV configuration saved successfully')
+      showSuccess(t('sync.webdavConfigSaved'))
     } catch (error) {
       console.error('Failed to configure WebDAV:', error)
-      showError(ready ? t('sync.webdavConfigFailed') : 'Failed to configure WebDAV')
+      showError(t('sync.webdavConfigFailed'))
     } finally {
       setLoading(false)
     }
@@ -126,12 +126,12 @@ export function WebDAVSync() {
       const result = await passwordManager.push()
       
       if (result.success) {
-        showSuccess(ready ? t('sync.pushCompleted', { count: result.recordsPushed }) : `Push completed successfully. ${result.recordsPushed} records pushed.`)
+        showSuccess(t('sync.pushCompleted', { count: result.recordsPushed }))
       } else if (result.passwordRequired) {
         // Show password dialog
         setPasswordDialog({ open: true, mode: 'push', error: null })
       } else {
-        showError(ready ? t('sync.pushFailed', { error: result.error }) : `Push failed: ${result.error}`)
+        showError(t('sync.pushFailed', { error: result.error }))
       }
       
       const status = passwordManager.getSyncStatus()
@@ -139,7 +139,7 @@ export function WebDAVSync() {
     } catch (error) {
       console.error('Failed to push:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
-      showError(ready ? t('sync.pushFailed', { error: errorMessage }) : `Push failed: ${errorMessage}`)
+      showError(t('sync.pushFailed', { error: errorMessage }))
     } finally {
       setLoading(false)
     }
@@ -155,15 +155,15 @@ export function WebDAVSync() {
       
       if (result.success) {
         if (result.vaultUpdated) {
-          showSuccess(ready ? t('sync.pullCompleted', { count: result.recordsPulled }) : `Pull completed successfully. ${result.recordsPulled} records pulled and vault updated.`)
+          showSuccess(t('sync.pullCompleted', { count: result.recordsPulled }))
         } else {
-          showSuccess(ready ? t('sync.pullNoChanges') : 'Pull completed successfully. No changes found.')
+          showSuccess(t('sync.pullNoChanges'))
         }
       } else if (result.passwordRequired) {
         // Show password dialog
         setPasswordDialog({ open: true, mode: 'pull', error: null })
       } else {
-        showError(ready ? t('sync.pullFailed', { error: result.error }) : `Pull failed: ${result.error}`)
+        showError(t('sync.pullFailed', { error: result.error }))
       }
       
       const status = passwordManager.getSyncStatus()
@@ -171,7 +171,7 @@ export function WebDAVSync() {
     } catch (error) {
       console.error('Failed to pull:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
-      showError(ready ? t('sync.pullFailed', { error: errorMessage }) : `Pull failed: ${errorMessage}`)
+      showError(t('sync.pullFailed', { error: errorMessage }))
     } finally {
       setLoading(false)
     }
@@ -185,15 +185,15 @@ export function WebDAVSync() {
       if (passwordDialog.mode === 'push') {
         const result = await passwordManager.push(password)
         if (result.success) {
-          showSuccess(ready ? t('sync.pushCompleted', { count: result.recordsPushed }) : `Push completed successfully. ${result.recordsPushed} records pushed.`)
+          showSuccess(t('sync.pushCompleted', { count: result.recordsPushed }))
           setPasswordDialog({ open: false, mode: 'push', error: null })
         } else {
           // Check if it's a password validation error
           if (result.error?.includes('Invalid master password')) {
-            const errorMessage = 'Incorrect master password. Please check your password and try again.'
+            const errorMessage = t('errors.authentication.incorrectPassword')
             setPasswordDialog({ ...passwordDialog, error: errorMessage })
           } else {
-            showError(ready ? t('sync.pushFailed', { error: result.error }) : `Push failed: ${result.error}`)
+            showError(t('sync.pushFailed', { error: result.error }))
             setPasswordDialog({ open: false, mode: 'push', error: null })
           }
         }
@@ -201,18 +201,18 @@ export function WebDAVSync() {
         const result = await passwordManager.pull(password)
         if (result.success) {
           if (result.vaultUpdated) {
-            showSuccess(ready ? t('sync.pullCompleted', { count: result.recordsPulled }) : `Pull completed successfully. ${result.recordsPulled} records pulled and vault updated.`)
+            showSuccess(t('sync.pullCompleted', { count: result.recordsPulled }))
           } else {
-            showSuccess(ready ? t('sync.pullNoChanges') : 'Pull completed successfully. No changes found.')
+            showSuccess(t('sync.pullNoChanges'))
           }
           setPasswordDialog({ open: false, mode: 'pull', error: null })
         } else {
           // Check if it's a password validation error
           if (result.error?.includes('Invalid master password')) {
-            const errorMessage = 'Incorrect master password. Please check your password and try again.'
+            const errorMessage = t('errors.authentication.incorrectPassword')
             setPasswordDialog({ ...passwordDialog, error: errorMessage })
           } else {
-            showError(ready ? t('sync.pullFailed', { error: result.error }) : `Pull failed: ${result.error}`)
+            showError(t('sync.pullFailed', { error: result.error }))
             setPasswordDialog({ open: false, mode: 'pull', error: null })
           }
         }
@@ -225,12 +225,12 @@ export function WebDAVSync() {
       const errorMessage = error instanceof Error ? error.message : String(error)
       // Check if it's a password validation error
       if (errorMessage.includes('Invalid master password')) {
-        const userErrorMessage = 'Incorrect master password. Please check your password and try again.'
+        const userErrorMessage = t('errors.authentication.incorrectPassword')
         setPasswordDialog({ ...passwordDialog, error: userErrorMessage })
       } else {
         showError(passwordDialog.mode === 'push'
-          ? (ready ? t('sync.pushFailed', { error: errorMessage }) : `Push failed: ${errorMessage}`)
-          : (ready ? t('sync.pullFailed', { error: errorMessage }) : `Pull failed: ${errorMessage}`))
+          ? t('sync.pushFailed', { error: errorMessage })
+          : t('sync.pullFailed', { error: errorMessage }))
         setPasswordDialog({ open: false, mode: passwordDialog.mode, error: null })
       }
     } finally {
@@ -269,10 +269,10 @@ export function WebDAVSync() {
       <CardHeader>
         <CardTitle className="flex items-center text-white">
           <Server className="h-5 w-5 mr-2 text-blue-400" />
-          {ready ? t('sync.webdavConfig') : 'WebDAV Configuration'}
+          {t('sync.webdavConfig')}
         </CardTitle>
         <CardDescription className="text-slate-400">
-          {ready ? t('sync.webdavConfigDesc') : 'Configure WebDAV server for syncing your vault across devices'}
+          {t('sync.webdavConfigDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -281,16 +281,16 @@ export function WebDAVSync() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">
               {isConfigured
-                ? (ready ? t('sync.webdavConfig') + ' - ' + t('common.settings') : 'WebDAV Configuration - Settings')
-                : (ready ? t('sync.webdavConfig') : 'WebDAV Configuration')}
+                ? t('sync.webdavConfig') + ' - ' + t('common.settings')
+                : t('sync.webdavConfig')}
             </h3>
             
             <form onSubmit={handleConfigureWebDAV} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.webdavUrl') : 'WebDAV URL'}</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.webdavUrl')}</label>
                 <Input
                   type="url"
-                  placeholder="https://your-webdav-server.com/dav"
+                  placeholder={t('initialization.webDAVUrlPlaceholder')}
                   value={webdavConfig.url}
                   onChange={(e) => setWebdavConfig({ ...webdavConfig, url: e.target.value })}
                   required
@@ -298,10 +298,10 @@ export function WebDAVSync() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.username') : 'Username'}</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.username')}</label>
                 <Input
                   type="text"
-                  placeholder={ready ? t('sync.username') : 'Username'}
+                  placeholder={t('sync.username')}
                   value={webdavConfig.username}
                   onChange={(e) => setWebdavConfig({ ...webdavConfig, username: e.target.value })}
                   required
@@ -309,9 +309,9 @@ export function WebDAVSync() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-2">{ready ? t('sync.password') : 'Password'}</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.password')}</label>
                 <PasswordInput
-                  placeholder={ready ? t('sync.password') : 'Password'}
+                  placeholder={t('sync.password')}
                   value={webdavConfig.password}
                   onChange={(e) => setWebdavConfig({ ...webdavConfig, password: e.target.value })}
                   required
@@ -325,7 +325,7 @@ export function WebDAVSync() {
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {ready ? t('sync.saveWebdavConfig') : 'Save WebDAV Configuration'}
+                  {t('sync.saveWebdavConfig')}
                 </Button>
                 {isConfigured && (
                   <Button 
@@ -335,7 +335,7 @@ export function WebDAVSync() {
                     variant="outline"
                     className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   >
-                    {ready ? t('common.reset') : 'Reset'}
+                    {t('common.reset')}
                   </Button>
                 )}
               </div>
@@ -345,7 +345,7 @@ export function WebDAVSync() {
           {/* Sync Operations Section */}
           {isConfigured && (
             <div className="space-y-4 border-t border-slate-700 pt-6">
-              <h3 className="text-lg font-medium text-white">{ready ? t('sync.pushAndPull') : 'Push & Pull'}</h3>
+              <h3 className="text-lg font-medium text-white">{t('sync.pushAndPull')}</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <Button
@@ -354,7 +354,7 @@ export function WebDAVSync() {
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  {loading ? (ready ? t('sync.pushing') : 'Pushing...') : (ready ? t('sync.push') : 'Push')}
+                  {loading ? t('sync.pushing') : t('sync.push')}
                 </Button>
                 <Button
                   onClick={handlePull}
@@ -362,17 +362,17 @@ export function WebDAVSync() {
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  {loading ? (ready ? t('sync.pulling') : 'Pulling...') : (ready ? t('sync.pull') : 'Pull')}
+                  {loading ? t('sync.pulling') : t('sync.pull')}
                 </Button>
               </div>
               
               <div className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg">
-                <h4 className="font-medium mb-2 text-white">{ready ? t('sync.pushPullInfo') : 'Push & Pull Info'}</h4>
+                <h4 className="font-medium mb-2 text-white">{t('sync.pushPullInfo')}</h4>
                 <div className="text-sm text-slate-300 space-y-1">
-                  <p>• <span className="text-green-400">{ready ? t('sync.push') : 'Push'}</span>: {ready ? t('sync.pushInfo') : 'Upload local changes to remote server'}</p>
-                  <p>• <span className="text-purple-400">{ready ? t('sync.pull') : 'Pull'}</span>: {ready ? t('sync.pullInfo') : 'Download remote changes to local vault'}</p>
-                  <p>• {ready ? t('sync.pushUsage') : 'Use Push when you\'ve made local changes'}</p>
-                  <p>• {ready ? t('sync.pullUsage') : 'Use Pull when you want to get changes from other devices'}</p>
+                  <p>• <span className="text-green-400">{t('sync.push')}</span>: {t('sync.pushInfo')}</p>
+                  <p>• <span className="text-purple-400">{t('sync.pull')}</span>: {t('sync.pullInfo')}</p>
+                  <p>• {t('sync.pushUsage')}</p>
+                  <p>• {t('sync.pullUsage')}</p>
                 </div>
               </div>
             </div>
@@ -381,9 +381,9 @@ export function WebDAVSync() {
           {/* Sync Status */}
           {syncStatus && (
             <div className="space-y-2 border-t border-slate-700 pt-6">
-              <h3 className="text-lg font-medium text-white">{ready ? t('sync.lastSync') : 'Last Sync'}</h3>
+              <h3 className="text-lg font-medium text-white">{t('sync.lastSync')}</h3>
               <div className="text-sm text-slate-300">
-                {syncStatus.lastSyncTime ? new Date(syncStatus.lastSyncTime).toLocaleString() : (ready ? t('sync.noRemoteChanges') : 'No remote changes')}
+                {syncStatus.lastSyncTime ? new Date(syncStatus.lastSyncTime).toLocaleString() : t('sync.noRemoteChanges')}
               </div>
             </div>
           )}
@@ -396,16 +396,16 @@ export function WebDAVSync() {
         onClose={handlePasswordDialogClose}
         onSubmit={handlePasswordSubmit}
         title={passwordDialog.mode === 'push'
-          ? (ready ? t('sync.pushToRemote') : 'Push to Remote')
-          : (ready ? t('sync.pullFromRemote') : 'Pull from Remote')}
+          ? t('sync.pushToRemote')
+          : t('sync.pullFromRemote')}
         description={
           passwordDialog.mode === 'push'
-            ? (ready ? t('sync.pushDesc') : 'Enter your master password to encrypt and push your local changes to the remote server.')
-            : (ready ? t('sync.pullDesc') : 'Enter your master password to decrypt and pull changes from the remote server.')
+            ? t('sync.pushDesc')
+            : t('sync.pullDesc')
         }
         submitText={passwordDialog.mode === 'push'
-          ? (ready ? t('sync.push') : 'Push')
-          : (ready ? t('sync.pull') : 'Pull')}
+          ? t('sync.push')
+          : t('sync.pull')}
         loading={loading}
         error={passwordDialog.error}
       />

@@ -141,7 +141,10 @@
     "resetConfirmMessage": "您确定要重置密码管理器吗？这将删除所有数据并返回到初始设置状态。",
     "resetFinalWarning": "此操作将永久删除所有数据，包括您的密码库、用户配置和所有记录。此操作无法撤销。",
     "confirmReset": "确认重置",
-    "resetting": "重置中..."
+    "resetting": "重置中...",
+    "light": "明亮",
+    "dark": "黑暗",
+    "system": "跟随系统"
   },
   "dialogs": {
     "confirmDelete": "确认删除此项目？",
@@ -184,7 +187,7 @@
     "configureWebDAV": "配置 WebDAV",
     "skipWebDAV": "跳过此步骤",
     "webDAVUrlLabel": "WebDAV URL",
-    "webDAVUrlPlaceholder": "https://your-webdav-server.com/dav",
+    "webDAVUrlPlaceholder": "WebDAV服务器的URL",
     "usernameLabel": "用户名",
     "usernamePlaceholder": "输入用户名",
     "webDAVPasswordLabel": "WebDAV 密码",
@@ -306,5 +309,22 @@
     "success": "成功",
     "error": "错误",
     "info": "信息"
+  },
+  "errors": {
+    "authentication": {
+      "incorrectPassword": "主密码错误。请检查您的密码并重试。"
+    },
+    "webdav": {
+      "unlockRequired": "请先解锁您的密码库以配置WebDAV设置"
+    },
+    "records": {
+      "pleaseFillRequiredFields": "请填写所有必填字段"
+    },
+    "initialization": {
+      "passwordRequired": "主密码为必填项",
+      "passwordMismatch": "密码不匹配",
+      "pleaseFillWebdavFields": "请填写所有WebDAV配置字段",
+      "saveWebdavOrCancel": "请保存您的WebDAV配置或取消以继续"
+    }
   }
 }
