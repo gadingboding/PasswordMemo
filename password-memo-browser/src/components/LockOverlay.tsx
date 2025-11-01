@@ -1,20 +1,87 @@
-import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Lock } from 'lucide-react'
-import { PasswordManager } from 'password-memo-core'
-import { useAuthStore } from '@/store/auth-store'
-import { Button } from '@/components/ui/Button'
-import { PasswordInput } from '@/components/ui/PasswordInput'
-import { InitializationFlow } from '@/components/InitializationFlow'
+import {useState, useEffect} from 'react'
+import {useTranslation} from 'react-i18next'
+import {Lock, RefreshCw} from 'lucide-react'
+import {PasswordManager} from 'password-memo-core'
+import {useAuthStore} from '@/store/auth-store'
+import {Button} from '@/components/ui/Button'
+import {PasswordInput} from '@/components/ui/PasswordInput'
+import {InitializationFlow} from '@/components/InitializationFlow'
+import {Dialog, DialogFooter} from "@components/ui/Dialog.tsx";
+
+
+
+interface ResetDialogProps {
+  manager: PasswordManager,
+  open: boolean
+  onClose: () => void
+  onResetComplete: () => void,
+  onResetAbort: () => void
+}
+
+
+function ResetDialog({manager, open, onClose, onResetComplete, onResetAbort}: ResetDialogProps) {
+  const {t} = useTranslation()
+  const [isResetting, setIsResetting] = useState(false)
+    const handleReset = async () => {
+    setIsResetting(true)
+    try {
+      await manager.reset()
+      onResetComplete()
+    } catch (err) {
+      console.error('Reset failed:', err)
+      // Optionally, show an error message to the user
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
+  return <Dialog
+    open={open}
+    onClose={() => onClose()}
+    title={t('settings.resetConfirmTitle')}
+  >
+    <div className="space-y-4">
+      <p className="text-slate-600">{t('settings.resetConfirmMessage')}</p>
+      <div className="bg-red-100 border border-red-300 rounded-md p-3">
+        <p className="text-sm text-red-700 font-medium">{t('settings.resetFinalWarning')}</p>
+      </div>
+    </div>
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => onResetAbort()}
+        disabled={isResetting}
+      >
+        {t('common.cancel')}
+      </Button>
+      <Button
+        variant="destructive"
+        onClick={handleReset}
+        disabled={isResetting}
+      >
+        {isResetting ? (
+          <>
+            <RefreshCw className="h-4 w-4 mr-2 animate-spin"/>
+            {t('settings.resetting')}
+          </>
+        ) : (
+          t('settings.confirmReset')
+        )}
+      </Button>
+    </DialogFooter>
+  </Dialog>
+}
 
 export function LockOverlay() {
   const {t} = useTranslation()
-  const { login, setPasswordManager } = useAuthStore()
+  const {login, setPasswordManager} = useAuthStore()
   const [masterPassword, setMasterPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null)
   const [showInitialization, setShowInitialization] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+
 
   // Check if already initialized on mount
   useEffect(() => {
@@ -25,10 +92,8 @@ export function LockOverlay() {
     try {
       // Use the singleton instance to check initialization status
       const manager = PasswordManager.getInstance()
-      
       // Use the isInitialized method to check status without full initialization
       const initialized = await manager.isInitialized()
-      
       setIsInitialized(initialized)
     } catch (error) {
       console.error('Failed to check initialization status:', error)
@@ -83,7 +148,7 @@ export function LockOverlay() {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
         <div className="w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-          <InitializationFlow onComplete={handleInitializationComplete} />
+          <InitializationFlow onComplete={handleInitializationComplete}/>
         </div>
       </div>
     )
@@ -95,7 +160,7 @@ export function LockOverlay() {
         {/* Lock Icon */}
         <div className="flex justify-center mb-8">
           <div className="p-4 bg-slate-800 rounded-full">
-            <Lock className="h-12 w-12 text-blue-400" />
+            <Lock className="h-12 w-12 text-blue-400"/>
           </div>
         </div>
 
@@ -142,7 +207,7 @@ export function LockOverlay() {
                   </div>
                 ) : (
                   <>
-                    <Lock className="h-4 w-4 mr-2" />
+                    <Lock className="h-4 w-4 mr-2"/>
                     {t('auth.unlock')}
                   </>
                 )}
@@ -154,13 +219,26 @@ export function LockOverlay() {
 
         {/* Hint */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-500">
-            Don't remember your master password?
-            <br />
-            You'll need to reset your vault.
-          </p>
+          <Button
+            type="button"
+            onClick={() => setShowResetDialog(true)}
+            className="text-xs text-slate-500 hover:text-slate-700 underline"
+          >
+            {t('login.forgotPassword')}
+          </Button>
         </div>
       </div>
+      <ResetDialog
+        manager={PasswordManager.getInstance()}
+        open={showResetDialog}
+        onClose={() => setShowResetDialog(false)}
+        onResetComplete={() => {
+          setShowResetDialog(false)
+          setIsInitialized(false)
+          setShowInitialization(true)
+        }}
+        onResetAbort={() => setShowResetDialog(false)}
+      />
     </div>
   )
 }

@@ -7,7 +7,6 @@ import { initializeI18n } from './i18n';
 // Import components and pages from the copied web app
 import { Layout } from '@/components/Layout';
 import { LockOverlay } from '@/components/LockOverlay';
-import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { RecordsPage } from '@/pages/RecordsPage';
 import { CreateRecordPage } from '@/pages/CreateRecordPage';
@@ -25,7 +24,6 @@ const App = () => (
     <div className="min-h-screen w-full bg-white">
       <Routes>
         <Route path="/options.html" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Layout><div /></Layout>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
