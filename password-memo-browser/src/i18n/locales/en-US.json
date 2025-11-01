@@ -95,6 +95,7 @@
     "conflictResolved": "Conflict resolved",
     "webdavUrl": "WebDAV URL",
     "webdavConfig": "WebDAV Configuration",
+    "path": "Vault File Path",
     "webdavConfigDesc": "Configure WebDAV server for syncing your vault across devices",
     "saveWebdavConfig": "Save WebDAV Configuration",
     "pushAndPull": "Push & Pull",

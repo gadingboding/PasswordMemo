@@ -8,16 +8,14 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { useToastContext } from '@/contexts/ToastContext'
 import {WebDAVForm} from "@components/WebDAVForm.tsx";
+import {WebDAVConfig} from "password-memo-core";
+import {getEmptyWebdavConfig} from "@lib/utils.ts";
 
 export function WebDAVSync() {
   const { t } = useTranslation()
   const { passwordManager, isAuthenticated } = useAuthStore()
   const { showSuccess, showError } = useToastContext()
-  const [webdavConfig, setWebdavConfig] = useState({
-    url: '',
-    username: '',
-    password: ''
-  })
+  const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>(getEmptyWebdavConfig())
   const [syncStatus, setSyncStatus] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [passwordDialog, setPasswordDialog] = useState({
@@ -31,11 +29,7 @@ export function WebDAVSync() {
   useEffect(() => {
     if (!isAuthenticated) {
       // 用户未认证时，重置所有状态
-      setWebdavConfig({
-        url: '',
-        username: '',
-        password: ''
-      })
+      setWebdavConfig(getEmptyWebdavConfig())
       setIsConfigured(false)
       setSyncStatus(null)
     }
@@ -52,29 +46,17 @@ export function WebDAVSync() {
         try {
           const webdavConfigFromManager = await passwordManager.getWebDAVConfig()
           if (webdavConfigFromManager && webdavConfigFromManager.url) {
-            setWebdavConfig({
-              url: webdavConfigFromManager.url,
-              username: webdavConfigFromManager.username,
-              password: webdavConfigFromManager.password
-            })
+            setWebdavConfig({...webdavConfigFromManager})
             setIsConfigured(true)
           } else {
             // 如果没有配置或配置无效，重置状态
-            setWebdavConfig({
-              url: '',
-              username: '',
-              password: ''
-            })
+            setWebdavConfig(getEmptyWebdavConfig())
             setIsConfigured(false)
           }
         } catch (error) {
           console.error('Failed to load WebDAV config from password manager:', error)
           // 出错时也要重置状态
-          setWebdavConfig({
-            url: '',
-            username: '',
-            password: ''
-          })
+          setWebdavConfig(getEmptyWebdavConfig())
           setIsConfigured(false)
         }
         
@@ -84,11 +66,7 @@ export function WebDAVSync() {
     } catch (error) {
       console.error('Failed to load settings:', error)
       // 出错时重置状态
-      setWebdavConfig({
-        url: '',
-        username: '',
-        password: ''
-      })
+      setWebdavConfig(getEmptyWebdavConfig())
       setIsConfigured(false)
     }
   }
@@ -253,11 +231,7 @@ export function WebDAVSync() {
       }
       
       // 重置本地状态
-      setWebdavConfig({
-        url: '',
-        username: '',
-        password: ''
-      })
+      setWebdavConfig(getEmptyWebdavConfig())
       setIsConfigured(false)
     } catch (error) {
       console.error('Failed to reset WebDAV config:', error)

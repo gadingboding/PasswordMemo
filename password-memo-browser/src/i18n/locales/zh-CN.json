@@ -95,6 +95,7 @@
     "conflictResolved": "冲突已解决",
     "webdavUrl": "WebDAV URL",
     "webdavConfig": "WebDAV 配置",
+    "path": "密码库文件路径",
     "webdavConfigDesc": "配置WebDAV服务器以在设备间同步您的密码库",
     "saveWebdavConfig": "保存WebDAV配置",
     "pushAndPull": "推送与拉取",

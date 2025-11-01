@@ -8,6 +8,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Stepper } from '@/components/ui/Stepper'
 import { useToastContext } from '@/contexts/ToastContext'
 import {WebDAVForm} from "@components/WebDAVForm.tsx";
+import {getEmptyWebdavConfig} from "@lib/utils.ts";
 
 interface InitializationFlowProps {
   onComplete: (passwordManager: PasswordManager) => void
@@ -27,11 +28,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
   const [passwordManager] = useState(() => PasswordManager.getInstance())
   
   // Step 1: WebDAV state
-  const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>({
-    url: '',
-    username: '',
-    password: ''
-  })
+  const [webdavConfig, setWebdavConfig] = useState<WebDAVConfig>(getEmptyWebdavConfig())
   const [configureWebDAV, setConfigureWebDAV] = useState(false)
   const [webdavConfigured, setWebdavConfigured] = useState(false)
   const [pullRemoteVault, setPullRemoteVault] = useState(false)
@@ -157,11 +154,7 @@ export function InitializationFlow({ onComplete }: InitializationFlowProps) {
     setWebdavConfigured(false)
     setConnectionTestResult('idle')
     setConnectionError('')
-    setWebdavConfig({
-      url: '',
-      username: '',
-      password: ''
-    })
+    setWebdavConfig(getEmptyWebdavConfig())
   }
 
   const handleComplete = async () => {

@@ -296,6 +296,10 @@ export class Sync {
     const {filePath: vaultPath} = this.getWebDAVPaths();
 
     try {
+      if (!await this.checkRemoteVaultExists()) {
+        return null
+      }
+
       // Try to download the file
       const remoteData = await this.storageAdapter.download(vaultPath);
       return JSON.parse(remoteData) as Vault;
@@ -317,31 +321,17 @@ export class Sync {
     if (!this.storageAdapter) {
       throw new Error('Storage adapter not initialized');
     }
-
     const {filePath: vaultPath, directoryPath} = this.getWebDAVPaths();
-
-    try {
-      const vaultJson = JSON.stringify(vault, null, 2);
-
-      // First, ensure the directory exists (unless it's the root directory)
-      if (directoryPath && directoryPath !== '/') {
-        try {
-          await this.storageAdapter.createDirectory(directoryPath);
-        } catch (dirError) {
-          // Directory might already exist, which is fine
-          if (dirError instanceof Error && !dirError.message.includes('Method Not Allowed')) {
-            throw dirError;
-          }
-        }
+    if (directoryPath !== '/') {
+      let isDirExists = await this.storageAdapter.exists(directoryPath);
+      if (!isDirExists) {
+        throw new Error("Target directory does not exist on remote storage");
       }
-
-      // Save the vault file in the directory
-      await this.storageAdapter.upload(vaultPath, vaultJson, {
-        overwrite: true
-      });
-    } catch (error) {
-      throw error;
     }
+    const vaultJson = JSON.stringify(vault, null, 2);
+    await this.storageAdapter.upload(vaultPath, vaultJson, {
+      overwrite: true
+    });
   }
 
   /**
@@ -487,7 +477,8 @@ export class Sync {
         // No remote vault - nothing to pull
         this.syncStatus.syncing = false;
         return {
-          success: true,
+          success: false,
+          error: 'REMOTE_FILE_NOT_FOUND',
           recordsPulled: 0,
           conflictsResolved: 0,
           vaultUpdated: false,
@@ -567,6 +558,11 @@ export class Sync {
     } catch (error) {
       return false;
     }
+  }
+
+  async checkRemoteVaultExists(): Promise<boolean> {
+    const {filePath: vaultPath} = this.getWebDAVPaths();
+    return await this.storageAdapter!.exists(vaultPath);
   }
 
   /**

@@ -162,10 +162,11 @@ export class PasswordManager {
         // Try to load remote vault if pullRemoteVault is true
         await this.syncManager.initializeStorage(config.webdav)
         const remoteVault = await this.syncManager.loadRemoteVault();
-        if (!remoteVault || !remoteVault.kdf) {
-          throw new Error('Failed to load remote vault or KDF configuration missing in remote vault');
+        if (!remoteVault) {
+          await this.initializeLocal(masterPassword, config.webdav);
+        } else {
+          await this.initializeRemote(masterPassword, config.webdav, remoteVault);
         }
-        await this.initializeRemote(masterPassword, config.webdav, remoteVault);
       } else {
         await this.initializeLocal(masterPassword, config.webdav);
       }
@@ -675,7 +676,8 @@ export class PasswordManager {
       await this.vaultManager.setWebDAVConfig({
         url: '',
         username: '',
-        password: ''
+        password: '',
+        path: '/password-note/vault.json'
       });
       await this.vaultManager.saveUserProfile();
     } catch (error) {

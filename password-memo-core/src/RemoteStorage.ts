@@ -130,20 +130,17 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
    * Get the directory path from a file path
    */
   private getDirectoryPath(filePath: string): string {
-    const fullPath = this.getFullPath(filePath);
-    const lastSlashIndex = fullPath.lastIndexOf('/');
+    const lastSlashIndex = filePath.lastIndexOf('/');
 
     if (lastSlashIndex <= 0) {
       return '/'; // Root directory
     }
 
-    return fullPath.substring(0, lastSlashIndex);
+    return filePath.substring(0, lastSlashIndex);
   }
 
   async upload(path: string, data: string | Buffer, options: UploadOptions = {}): Promise<void> {
     await this.initializeClient();
-
-    const fullPath = this.getFullPath(path);
     const directoryPath = this.getDirectoryPath(path);
 
     try {
@@ -160,21 +157,19 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
       }
 
       // Upload the file
-      await this.client.putFileContents(fullPath, data, {
+      await this.client.putFileContents(path, data, {
         overwrite: options.overwrite !== false // Default to true
       });
     } catch (error) {
-      throw new Error(`Failed to upload file to ${fullPath}: ${error}`);
+      throw new Error(`Failed to upload file to ${path}: ${error}`);
     }
   }
 
   async download(path: string, options: DownloadOptions = {}): Promise<string> {
     await this.initializeClient();
 
-    const fullPath = this.getFullPath(path);
-
     try {
-      const data = await this.client.getFileContents(fullPath, {
+      const data = await this.client.getFileContents(path, {
         format: 'text'
       });
 
@@ -186,20 +181,17 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
     } catch (error: any) {
       // File might not exist
       if (error.status === 404) {
-        throw new Error(`File not found: ${fullPath}`);
+        throw new Error(`File not found: ${path}`);
       }
 
-      throw new Error(`Failed to download file from ${fullPath}: ${error}`);
+      throw new Error(`Failed to download file from ${path}: ${error}`);
     }
   }
 
   async exists(path: string): Promise<boolean> {
     await this.initializeClient();
-
-    const fullPath = this.getFullPath(path);
-
     try {
-      await this.client.stat(fullPath);
+      await this.client.stat(path);
       return true;
     } catch (error: any) {
       if (error.status === 404) {
@@ -211,31 +203,26 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
 
   async delete(path: string): Promise<void> {
     await this.initializeClient();
-
-    const fullPath = this.getFullPath(path);
-
     try {
-      await this.client.deleteFile(fullPath);
+      await this.client.deleteFile(path);
     } catch (error: any) {
       if (error.status === 404) {
         // File doesn't exist, consider it deleted
         return;
       }
-      throw new Error(`Failed to delete file ${fullPath}: ${error}`);
+      throw new Error(`Failed to delete file ${path}: ${error}`);
     }
   }
 
   async createDirectory(path: string): Promise<void> {
     await this.initializeClient();
 
-    const fullPath = this.getFullPath(path);
-
     try {
-      await this.client.createDirectory(fullPath);
+      await this.client.createDirectory(path);
     } catch (error: any) {
       // Directory might already exist, which is fine
       if (error.status !== 405) { // 405 Method Not Allowed means directory exists
-        throw new Error(`Failed to create directory ${fullPath}: ${error}`);
+        throw new Error(`Failed to create directory ${path}: ${error}`);
       }
     }
   }

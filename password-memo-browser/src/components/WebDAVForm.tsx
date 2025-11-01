@@ -5,7 +5,6 @@ import {useTranslation} from "react-i18next";
 import {WebDAVConfig} from "password-memo-core";
 
 
-
 interface WebDAVFormProps {
   webdavConfig: WebDAVConfig
   setWebdavConfig: (config: WebDAVConfig) => void
@@ -14,29 +13,50 @@ interface WebDAVFormProps {
 
 export function WebDAVForm({webdavConfig, setWebdavConfig}: WebDAVFormProps) {
   const {t} = useTranslation()
+  
+  // Configuration for input fields
+  const inputFields = [
+    {
+      key: 'url' as keyof WebDAVConfig,
+      type: 'url' as const,
+      labelKey: 'sync.webdavUrl',
+      placeholderKey: 'initialization.webDAVUrlPlaceholder',
+    },
+    {
+      key: 'username' as keyof WebDAVConfig,
+      type: 'text' as const,
+      labelKey: 'sync.username',
+      placeholderKey: 'sync.username',
+    },
+    {
+      key: 'path' as keyof WebDAVConfig,
+      type: 'text' as const,
+      labelKey: 'sync.path',
+      placeholderKey: 'sync.path',
+    },
+  ]
+  
+  const commonInputClassName = "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+  
   return <>
-    <div>
-      <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.webdavUrl')}</label>
-      <Input
-        type="url"
-        placeholder={t('initialization.webDAVUrlPlaceholder')}
-        value={webdavConfig.url}
-        onChange={(e) => setWebdavConfig({...webdavConfig, url: e.target.value})}
-        required
-        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.username')}</label>
-      <Input
-        type="text"
-        placeholder={t('sync.username')}
-        value={webdavConfig.username}
-        onChange={(e) => setWebdavConfig({...webdavConfig, username: e.target.value})}
-        required
-        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-      />
-    </div>
+    {/* Render regular input fields using loop */}
+    {inputFields.map((field) => (
+      <div key={field.key}>
+        <label className="block text-sm font-medium text-slate-200 mb-2">
+          {t(field.labelKey)}
+        </label>
+        <Input
+          type={field.type}
+          placeholder={t(field.placeholderKey)}
+          value={webdavConfig[field.key] as string}
+          onChange={(e) => setWebdavConfig({...webdavConfig, [field.key]: e.target.value})}
+          required
+          className={commonInputClassName}
+        />
+      </div>
+    ))}
+    
+    {/* Password field (special case using PasswordInput) */}
     <div>
       <label className="block text-sm font-medium text-slate-200 mb-2">{t('sync.password')}</label>
       <PasswordInput
@@ -44,10 +64,10 @@ export function WebDAVForm({webdavConfig, setWebdavConfig}: WebDAVFormProps) {
         value={webdavConfig.password}
         onChange={(e) => setWebdavConfig({...webdavConfig, password: e.target.value})}
         required
-        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+        className={commonInputClassName}
       />
     </div>
   </>
 }
 
-// export function WebDAVForm({webdavConfig, setWebdavConfig}: WebDAVFormProps)
+WebDAVForm.displayName = 'WebDAVForm';
