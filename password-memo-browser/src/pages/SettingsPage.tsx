@@ -3,12 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { Globe } from 'lucide-react'
 import { WebDAVSync } from '@/components/WebDAVSync'
 import { ResetSettings } from '@/components/ResetSettings'
+import { ExportVault } from '@/components/ExportVault'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { AppSettingsManager } from '@/lib/app-settings'
+import { PasswordManager } from 'password-memo-core'
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation()
   const [currentLanguage, setCurrentLanguage] = useState('zh-CN')
+  const passwordManager = PasswordManager.getInstance()
 
   useEffect(() => {
     loadLanguageSetting()
@@ -79,6 +82,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      <ExportVault passwordManager={passwordManager} />
       <WebDAVSync />
       <ResetSettings />
     </div>

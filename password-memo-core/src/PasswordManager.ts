@@ -808,4 +808,24 @@ export class PasswordManager {
   checkPasswordComplexity(password: string, userInputs: string[] = []): PasswordComplexityResult {
     return CryptographyEngine.checkPasswordComplexity(password, userInputs);
   }
+
+  /**
+   * Export vault data as JSON
+   * @returns Encrypted vault data as JSON string
+   */
+  async exportVault(): Promise<string> {
+    this.ensureInitialized();
+
+    if (!this.isUnlocked()) {
+      throw new Error('Vault is locked. Please authenticate first.');
+    }
+
+    try {
+      const vault = this.vaultManager.getVault();
+      return JSON.stringify(vault, null, 2);
+    } catch (error) {
+      throw new Error(`Failed to export vault: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
 }
