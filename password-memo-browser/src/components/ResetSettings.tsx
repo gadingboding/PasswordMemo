@@ -2,31 +2,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Dialog, DialogFooter } from '@/components/ui/Dialog'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
-import { useAuthStore } from '@/store/auth-store'
+
+import {ResetSettingsDialog} from "@components/ResetSettingsDialog.tsx";
 
 export function ResetSettings() {
   const { t } = useTranslation()
-  const { reset } = useAuthStore()
   const [showResetDialog, setShowResetDialog] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
-
-  const handleReset = async () => {
-    setIsResetting(true)
-    try {
-      const success = await reset()
-      if (success) {
-        // Reset successful, the page will be redirected to login automatically
-        // by the auth store state change
-        setShowResetDialog(false)
-      }
-    } catch (error) {
-      console.error('Reset failed:', error)
-    } finally {
-      setIsResetting(false)
-    }
-  }
 
   return (
     <>
@@ -61,42 +43,11 @@ export function ResetSettings() {
       </Card>
 
       {/* Reset Confirmation Dialog */}
-      <Dialog
-        open={showResetDialog}
+      <ResetSettingsDialog
+        isOpen={showResetDialog}
         onClose={() => setShowResetDialog(false)}
-        title={t('settings.resetConfirmTitle')}
-      >
-        <div className="space-y-4">
-          <p className="text-slate-300">{t('settings.resetConfirmMessage')}</p>
-          <div className="bg-red-900/20 border border-red-700 rounded-md p-3">
-            <p className="text-sm text-red-300 font-medium">{t('settings.resetFinalWarning')}</p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setShowResetDialog(false)}
-            disabled={isResetting}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleReset}
-            disabled={isResetting}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            {isResetting ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                {t('settings.resetting')}
-              </>
-            ) : (
-              t('settings.confirmReset')
-            )}
-          </Button>
-        </DialogFooter>
-      </Dialog>
+        onResetComplete={() => setShowResetDialog(false)}
+      />
     </>
   )
 }

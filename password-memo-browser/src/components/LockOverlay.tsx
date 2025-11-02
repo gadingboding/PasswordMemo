@@ -1,76 +1,13 @@
 import {useState, useEffect} from 'react'
 import {useTranslation} from 'react-i18next'
-import {Lock, RefreshCw} from 'lucide-react'
+import {Lock} from 'lucide-react'
 import {PasswordManager} from 'password-memo-core'
 import {useAuthStore} from '@/store/auth-store'
 import {Button} from '@/components/ui/Button'
 import {PasswordInput} from '@/components/ui/PasswordInput'
 import {InitializationFlow} from '@/components/InitializationFlow'
-import {Dialog, DialogFooter} from "@components/ui/Dialog.tsx";
+import {ResetSettingsDialog} from "@components/ResetSettingsDialog.tsx";
 
-
-
-interface ResetDialogProps {
-  manager: PasswordManager,
-  open: boolean
-  onClose: () => void
-  onResetComplete: () => void,
-  onResetAbort: () => void
-}
-
-
-function ResetDialog({manager, open, onClose, onResetComplete, onResetAbort}: ResetDialogProps) {
-  const {t} = useTranslation()
-  const [isResetting, setIsResetting] = useState(false)
-    const handleReset = async () => {
-    setIsResetting(true)
-    try {
-      await manager.reset()
-      onResetComplete()
-    } catch (err) {
-      console.error('Reset failed:', err)
-      // Optionally, show an error message to the user
-    } finally {
-      setIsResetting(false)
-    }
-  }
-
-  return <Dialog
-    open={open}
-    onClose={() => onClose()}
-    title={t('settings.resetConfirmTitle')}
-  >
-    <div className="space-y-4">
-      <p className="text-slate-600">{t('settings.resetConfirmMessage')}</p>
-      <div className="bg-red-100 border border-red-300 rounded-md p-3">
-        <p className="text-sm text-red-700 font-medium">{t('settings.resetFinalWarning')}</p>
-      </div>
-    </div>
-    <DialogFooter>
-      <Button
-        variant="outline"
-        onClick={() => onResetAbort()}
-        disabled={isResetting}
-      >
-        {t('common.cancel')}
-      </Button>
-      <Button
-        variant="destructive"
-        onClick={handleReset}
-        disabled={isResetting}
-      >
-        {isResetting ? (
-          <>
-            <RefreshCw className="h-4 w-4 mr-2 animate-spin"/>
-            {t('settings.resetting')}
-          </>
-        ) : (
-          t('settings.confirmReset')
-        )}
-      </Button>
-    </DialogFooter>
-  </Dialog>
-}
 
 export function LockOverlay() {
   const {t} = useTranslation()
@@ -228,16 +165,14 @@ export function LockOverlay() {
           </Button>
         </div>
       </div>
-      <ResetDialog
-        manager={PasswordManager.getInstance()}
-        open={showResetDialog}
+      <ResetSettingsDialog
+        isOpen={showResetDialog}
         onClose={() => setShowResetDialog(false)}
         onResetComplete={() => {
           setShowResetDialog(false)
           setIsInitialized(false)
           setShowInitialization(true)
         }}
-        onResetAbort={() => setShowResetDialog(false)}
       />
     </div>
   )

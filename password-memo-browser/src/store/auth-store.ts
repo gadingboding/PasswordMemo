@@ -1,12 +1,12 @@
-import { create } from 'zustand'
-import { PasswordManager } from 'password-memo-core'
+import {create} from 'zustand'
+import {PasswordManager} from 'password-memo-core'
 
 interface AuthState {
   isAuthenticated: boolean
   passwordManager: PasswordManager | null
   isLoading: boolean
   error: string | null
-  
+
   // Actions
   login: (password: string) => Promise<boolean>
   logout: () => void
@@ -23,8 +23,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
 
   login: async (password: string) => {
-    set({ isLoading: true, error: null })
-    
+    set({isLoading: true, error: null})
+
     try {
       const manager = PasswordManager.getInstance()
 
@@ -43,14 +43,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } else {
           // Enhanced error handling for sentinel password validation
           let errorMessage = result.error || 'Authentication failed'
-          
+
           // Check if it's a sentinel validation error
           if (result.error?.includes('validation failed') ||
-              result.error?.includes('sentinel value mismatch') ||
-              result.error?.includes('Invalid master key')) {
+            result.error?.includes('sentinel value mismatch') ||
+            result.error?.includes('Invalid master key')) {
             errorMessage = 'Incorrect master password. Please check your password and try again.'
           }
-          
+
           set({
             error: errorMessage,
             isLoading: false
@@ -68,19 +68,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error('Authentication error:', error)
-      
+
       // Enhanced error handling for different types of errors
       let errorMessage = 'Authentication failed'
       if (error instanceof Error) {
         if (error.message.includes('validation failed') ||
-            error.message.includes('sentinel') ||
-            error.message.includes('Invalid master key')) {
+          error.message.includes('sentinel') ||
+          error.message.includes('Invalid master key')) {
           errorMessage = 'Incorrect master password. Please check your password and try again.'
         } else {
           errorMessage = error.message
         }
       }
-      
+
       set({
         error: errorMessage,
         isLoading: false
@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    const { passwordManager } = get()
+    const {passwordManager} = get()
     if (passwordManager) {
       passwordManager.lock()
     }
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   lock: () => {
-    const { passwordManager } = get()
+    const {passwordManager} = get()
     if (passwordManager) {
       passwordManager.lock()
     }
@@ -112,7 +112,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
   },
 
-  clearError: () => set({ error: null }),
+  clearError: () => set({error: null}),
 
   setPasswordManager: (manager: PasswordManager) => set({
     isAuthenticated: true,
@@ -120,11 +120,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     isLoading: false,
     error: null
   }),
-    reset: async () => {
-    set({ isLoading: true, error: null })
+  reset: async () => {
+    set({isLoading: true, error: null})
 
     try {
-      const { passwordManager } = get()
+      const {passwordManager} = get()
 
       // User must be logged in to access reset, so passwordManager must exist
       if (!passwordManager) {
