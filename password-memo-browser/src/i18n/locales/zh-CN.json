@@ -290,7 +290,8 @@
     "pleaseFillRequiredFields": "请填写所有必填字段",
     "failedToCreateTemplate": "创建模板失败",
     "failedToUpdateTemplate": "更新模板失败",
-    "templateDeletionNotSupported": "暂不支持模板删除"
+    "cannotDeleteTemplateInUse": "无法删除模板：该模板正在被一个或多个记录使用",
+    "failedToDeleteTemplate": "删除模板失败"
   },
   "labelForm": {
     "back": "返回",

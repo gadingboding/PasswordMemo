@@ -33,15 +33,29 @@ export function TemplatesPage() {
   }
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!passwordManager || !confirm(t('dialogs.confirmDeleteTemplate'))) return
+    if (!passwordManager) return
 
     try {
+      // Check if template is in use before deletion
+      const isTemplateInUse = await (passwordManager as any).isTemplateInUse(templateId)
+      
+      if (isTemplateInUse) {
+        showError(t('templateForm.cannotDeleteTemplateInUse'))
+        return
+      }
+
+      if (!confirm(t('dialogs.confirmDeleteTemplate'))) return
+
       await passwordManager.deleteTemplate(templateId)
       await loadTemplates()
     } catch (error) {
       console.error('Failed to delete template:', error)
-      // Template deletion might not be implemented yet
-      showError(t('templateForm.templateDeletionNotSupported'))
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (errorMessage.includes('being used by one or more records')) {
+        showError(t('templateForm.cannotDeleteTemplateInUse'))
+      } else {
+        showError(t('templateForm.failedToDeleteTemplate'))
+      }
     }
   }
 

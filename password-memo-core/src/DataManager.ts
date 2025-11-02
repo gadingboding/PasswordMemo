@@ -552,6 +552,46 @@ export class DataManager {
     await this.saveVault();
   }
 
+  /**
+   * Delete a template
+   */
+  async deleteTemplate(templateId: string): Promise<void> {
+    if (!this.masterKey) {
+      throw new Error('Vault is locked. Master key required.');
+    }
+
+    // Check if template exists
+    const encryptedTemplate = this.vault.templates[templateId];
+    if (!encryptedTemplate) {
+      throw new Error('Template not found');
+    }
+
+    // Check if template is being used by any records
+    const isTemplateInUse = await this.isTemplateInUse(templateId);
+    if (isTemplateInUse) {
+      throw new Error('Cannot delete template: it is being used by one or more records');
+    }
+
+    // Delete the template
+    delete this.vault.templates[templateId];
+
+    // Save vault data after modification
+    await this.saveVault();
+  }
+
+  /**
+   * Check if a template is being used by any records
+   */
+  async isTemplateInUse(templateId: string): Promise<boolean> {
+    // Check all records to see if any use this template
+    for (const record of Object.values(this.vault.records)) {
+      if (!record.deleted && record.template === templateId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // === LABEL MANAGEMENT ===
 
   /**

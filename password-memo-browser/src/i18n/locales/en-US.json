@@ -290,7 +290,8 @@
     "pleaseFillRequiredFields": "Please fill in all required fields",
     "failedToCreateTemplate": "Failed to create template",
     "failedToUpdateTemplate": "Failed to update template",
-    "templateDeletionNotSupported": "Template deletion is not yet supported"
+    "cannotDeleteTemplateInUse": "Cannot delete template: it is being used by one or more records",
+    "failedToDeleteTemplate": "Failed to delete template"
   },
   "labelForm": {
     "back": "Back",

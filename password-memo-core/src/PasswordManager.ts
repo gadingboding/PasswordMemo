@@ -528,10 +528,25 @@ export class PasswordManager {
       throw new Error('Vault is locked. Please authenticate first.');
     }
 
-    // Note: deleteTemplate is not implemented in DataManager
-    // We'll need to implement it or remove this functionality
-    // For now, we'll throw an error
-    throw new Error('Template deletion not yet implemented');
+    try {
+      await this.vaultManager.deleteTemplate(templateId);
+    } catch (error) {
+      throw new Error(`Failed to delete template: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Check if a template is being used by any records
+   * @param templateId Template ID
+   */
+  async isTemplateInUse(templateId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    if (!this.isUnlocked()) {
+      throw new Error('Vault is locked. Please authenticate first.');
+    }
+
+    return await this.vaultManager.isTemplateInUse(templateId);
   }
 
   /**
