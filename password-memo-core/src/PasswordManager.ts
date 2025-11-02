@@ -452,7 +452,7 @@ export class PasswordManager {
     const processedFields = fields.map(field => ({
       ...field,
       id: field.id || crypto.randomUUID(),
-      optional: !field.optional // Convert required to optional (opposite boolean)
+      optional: field.optional ?? false
     }));
 
     return await this.vaultManager.createTemplate(name, processedFields);
@@ -510,7 +510,7 @@ export class PasswordManager {
       vaultUpdates.fields = updates.fields.map(field => ({
         ...field,
         id: field.id || crypto.randomUUID(),
-        optional: !field.optional // Convert required to optional (opposite boolean)
+        optional: field.optional ?? false
       }));
     }
 
