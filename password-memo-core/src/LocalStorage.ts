@@ -72,7 +72,15 @@ class BrowserStorageAdapter implements LocalStorageAdapter {
     try {
       const result = await browser.storage.local.get(path);
       const value = result[path];
-      return typeof value === 'string' ? value : null;
+      if (value == null) {
+        return null;
+      }
+      if (typeof value === 'object') {
+        return JSON.stringify(value);
+      } else if (typeof value === 'string') {
+        return value;
+      }
+      return null;
     } catch (error) {
       return null;
     }
