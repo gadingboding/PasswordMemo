@@ -24,7 +24,7 @@ import {CryptographyEngine} from './CryptoEngine.js';
 import {Sync} from './Sync.js';
 import {WebDAVConfig} from './types/vault.js';
 import {KDFAdapter} from './KDFAdapter.js';
-import {configLocalStorage} from "./LocalStorage.js";
+import {configLocalStorage, LocalVaultFile, LocalUserProfileFile} from "./LocalStorage.js";
 
 /**
  * Password Manager initialization configuration
@@ -841,6 +841,51 @@ export class PasswordManager {
     } catch (error) {
       throw new Error(`Failed to export vault: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Import vault data from a JSON string
+   * This will overwrite the current vault and clear user profile data
+   * @param vaultData The JSON string containing the vault data to import
+   * @returns Promise<void>
+   */
+  async importVault(vaultData: string): Promise<void> {
+    try {
+      // Parse the vault data
+      const importedVault = JSON.parse(vaultData) as Vault;
+      
+      // Validate the imported data structure
+      if (!importedVault || typeof importedVault !== 'object') {
+        throw new Error('Invalid vault data format');
+      }
+      
+      // Clear existing data
+      await this.clearAllData();
+      
+      // Create a new DataManager with the imported vault
+      const newVaultManager = new DataManager(importedVault);
+      
+      // Save the imported vault to storage
+      await newVaultManager.saveVault();
+      
+      // Re-initialize the password manager with the new vault
+      this.vaultManager = newVaultManager;
+      this.syncManager = new Sync(this.vaultManager);
+      
+      // Clear the master key to force re-authentication
+      this.vaultManager.clearMasterKey();
+    } catch (error) {
+      throw new Error(`Failed to import vault: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Clear all data including vault and user profile
+   */
+  private async clearAllData(): Promise<void> {
+    await LocalVaultFile.write(JSON.stringify({}));
+    await LocalUserProfileFile.write(JSON.stringify({}));
+    this.syncManager.destroy();
   }
 
 }

@@ -50,6 +50,15 @@ export class Sync {
   getSyncStatus(): SyncStatus {
     return {...this.syncStatus};
   }
+  
+  /**
+   * Clear WebDAV configuration
+   */
+  async clearWebDAVConfig(): Promise<void> {
+    this.webdavConfig = null;
+    this.storageAdapter = null;
+    await this.vaultManager.setWebDAVConfig(null);
+  }
 
   /**
    * Generate a new sync version ID (similar to git commit ID)

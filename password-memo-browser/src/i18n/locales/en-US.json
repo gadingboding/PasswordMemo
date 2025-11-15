@@ -127,6 +127,8 @@
     "appearance": "Appearance",
     "language": "Language",
     "languageDesc": "Choose your preferred language for the interface",
+    "dataManagement": "Data Management",
+    "dataManagementDesc": "Import or export your vault data",
     "theme": "Theme",
     "timeout": "Timeout",
     "clipboardClear": "Clipboard Clear Time",

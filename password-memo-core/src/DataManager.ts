@@ -838,13 +838,20 @@ export class DataManager {
   }
 
   /**
-   * Save WebDAV configuration (encrypted)
+   * Save or clear WebDAV configuration
+   * @param config WebDAV configuration or null to clear
    */
-  async setWebDAVConfig(config: WebDAVConfig): Promise<void> {
+  async setWebDAVConfig(config: WebDAVConfig | null): Promise<void> {
     try {
-      const configJson = JSON.stringify(config);
-      const encryptedData = await CryptographyEngine.encrypt(configJson, this.masterKey!);
-      this.userProfile.webdav_config = {encrypted_data: encryptedData};
+      if (config === null) {
+        // Clear WebDAV configuration
+        delete this.userProfile.webdav_config;
+      } else {
+        // Save WebDAV configuration (encrypted)
+        const configJson = JSON.stringify(config);
+        const encryptedData = await CryptographyEngine.encrypt(configJson, this.masterKey!);
+        this.userProfile.webdav_config = {encrypted_data: encryptedData};
+      }
     } catch (error) {
       throw new Error('Failed to save WebDAV configuration');
     }
