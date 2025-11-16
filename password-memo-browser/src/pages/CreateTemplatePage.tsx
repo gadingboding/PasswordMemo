@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, X, Save } from 'lucide-react'
+import { ArrowLeft, Plus, Save } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { DragDropContainer } from '@/components/DragDropContainer'
 import type { TemplateField } from 'password-memo-core'
 import { useToastContext } from '@/contexts/ToastContext'
 
@@ -58,6 +58,10 @@ export function CreateTemplatePage() {
   const handleFieldChange = (index: number, updates: Partial<ExtendedTemplateField>) => {
     const newFields = [...formData.fields]
     newFields[index] = { ...newFields[index], ...updates }
+    setFormData({ ...formData, fields: newFields })
+  }
+
+  const handleFieldReorder = (newFields: ExtendedTemplateField[]) => {
     setFormData({ ...formData, fields: newFields })
   }
 
@@ -142,68 +146,14 @@ export function CreateTemplatePage() {
                 </Button>
               </div>
 
-              <div className="space-y-4">
-                {formData.fields.map((field, index) => (
-                  <div key={field.id} className="bg-slate-700/50 border border-slate-600 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-sm font-medium text-slate-300">{t('templateForm.field', { number: index + 1 })}</span>
-                      {formData.fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveField(index)}
-                          className="text-slate-400 hover:text-red-400 h-6 w-6"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1">
-                          {t('templateForm.fieldName')} *
-                        </label>
-                        <Input
-                          type="text"
-                          value={field.name}
-                          onChange={(e) => handleFieldChange(index, { name: e.target.value })}
-                          placeholder={t('templateForm.fieldNamePlaceholder')}
-                          required
-                          className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-300 mb-1">
-                            {t('templateForm.fieldType')}
-                          </label>
-                          <Select
-                            value={field.type}
-                            onChange={(value) => handleFieldChange(index, { type: value as any })}
-                            options={FIELD_TYPES}
-                            className="bg-slate-700 border-slate-600"
-                          />
-                        </div>
-                        
-                        <div className="flex items-end">
-                          <label className="flex items-center gap-2 text-xs text-slate-300">
-                            <input
-                              type="checkbox"
-                              checked={!field.optional}
-                              onChange={(e) => handleFieldChange(index, { optional: !e.target.checked })}
-                              className="rounded border-slate-600 bg-slate-700"
-                            />
-                            {t('templateForm.requiredField')}
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <DragDropContainer
+                fields={formData.fields}
+                onUpdate={handleFieldChange}
+                onRemove={handleRemoveField}
+                onReorder={handleFieldReorder}
+                fieldTypes={FIELD_TYPES}
+                t={t}
+              />
             </div>
 
             <div className="flex justify-end space-x-3 pt-6">

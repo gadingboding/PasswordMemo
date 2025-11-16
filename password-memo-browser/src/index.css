@@ -109,6 +109,45 @@
   .animate-slide-out {
     animation: slideOut 0.3s ease-in;
   }
+  
+  /* 拖拽相关样式 */
+  .drag-handle {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  .dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+  }
+  
+  .drag-over {
+    background-color: hsl(var(--accent) / 0.3);
+    border-color: hsl(var(--primary));
+  }
+  
+  .drop-indicator {
+    height: 2px;
+    background-color: hsl(var(--primary));
+    margin: 4px 0;
+    border-radius: 1px;
+  }
+  
+  .sortable-ghost {
+    opacity: 0.4;
+    background-color: hsl(var(--accent) / 0.5);
+  }
+  
+  .sortable-drag {
+    transform: rotate(5deg);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
 }
 
 @keyframes slideIn {
