@@ -4,8 +4,6 @@
   "version": "0.3.3",
   "description": "Secure password manager with encryption and synchronization",
   "permissions": ["storage", "activeTab"],
-  "optional_permissions": [],
-  "optional_host_permissions": ["<all_urls>"],
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
