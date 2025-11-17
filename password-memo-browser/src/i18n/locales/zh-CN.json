@@ -355,7 +355,7 @@
       "title": "确认导入",
       "warning": "警告！此操作将完全清除当前所有数据！",
       "description": "导入后，所有现有的密码记录、模板、标签和WebDAV配置都将丢失。请确保您已备份重要数据。",
-      "proceed": "确认导入并清除当前数据"
+      "proceed": "确认"
     },
     "error": {
       "invalidFileFormat": "无效的文件格式。请选择JSON格式的密码库文件。",

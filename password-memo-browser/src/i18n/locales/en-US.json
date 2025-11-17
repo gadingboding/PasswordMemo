@@ -342,5 +342,24 @@
       "pleaseFillWebdavFields": "Please fill in all WebDAV configuration fields",
       "saveWebdavOrCancel": "Please save your WebDAV configuration or cancel to proceed"
     }
+  },
+  "import": {
+    "button": "Import Vault",
+    "title": "Import Vault",
+    "description": "Import a previously exported, encrypted vault file. Importing will erase all current data, including WebDAV configuration.",
+    "selectFile": "Select File",
+    "selectedFile": "File Selected",
+    "continue": "Continue",
+    "success": "Vault imported successfully! The system will restart.",
+    "confirm": {
+      "title": "Confirm Import",
+      "warning": "WARNING! This operation will completely erase all current data!",
+      "description": "After importing, all existing password entries, templates, tags, and WebDAV configuration will be lost. Please ensure you have backed up important data.",
+      "proceed": "Confirm"
+    },
+    "error": {
+      "invalidFileFormat": "Invalid file format. Please select a JSON-formatted vault file.",
+      "failed": "Import failed. The file may be corrupted or the password may be incorrect."
+    }
   }
 }
