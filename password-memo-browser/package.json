@@ -1,6 +1,6 @@
 {
   "name": "password-memo-browser",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "PasswordMemo Browser Extension",
   "private": true,
   "type": "module",

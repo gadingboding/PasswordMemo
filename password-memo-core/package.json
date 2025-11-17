@@ -1,7 +1,7 @@
 {
   "name": "password-memo-core",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Secure password manager core with encryption and synchronization capabilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

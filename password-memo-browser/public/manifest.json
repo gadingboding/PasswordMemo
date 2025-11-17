@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Password Memo",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Secure password manager with encryption and synchronization",
   "permissions": ["storage"],
   "optional_permissions": [
