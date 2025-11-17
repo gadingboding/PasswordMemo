@@ -1,7 +1,7 @@
 {
   "name": "password-memo-core",
   "type": "module",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Secure password manager core with encryption and synchronization capabilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,7 @@
     "build:watch": "tsc --watch"
   },
   "keywords": [
-    "password-note",
+    "PasswordMemo",
     "encryption",
     "security",
     "typescript",

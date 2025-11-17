@@ -692,7 +692,7 @@ export class PasswordManager {
         url: '',
         username: '',
         password: '',
-        path: '/password-note/vault.json'
+        path: '/PasswordMemo/vault.json'
       });
       await this.vaultManager.saveUserProfile();
     } catch (error) {

@@ -17,7 +17,7 @@ export const STORAGE_KEYS = {
 /**
  * Default namespace for storage
  */
-export const DEFAULT_STORAGE_NAMESPACE = 'password-note';
+export const DEFAULT_STORAGE_NAMESPACE = 'PasswordMemo';
 
 /**
  * Default KDF configuration

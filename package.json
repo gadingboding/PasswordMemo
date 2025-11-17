@@ -1,7 +1,10 @@
 {
   "name": "password-memo",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "",
+  "license": "MIT",
+  "author": "gadingboding",
+  "repository": "https://github.com/gadingboding/PasswordMemo",
   "private": true,
   "scripts": {
     "build": "pnpm run build:core && pnpm run build:extension",

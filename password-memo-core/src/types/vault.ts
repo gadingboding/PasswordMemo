@@ -108,7 +108,7 @@ export interface WebDAVConfig {
   url: string;
   username: string;
   password: string;
-  /** Custom path for WebDAV storage (optional, defaults to '/password-note/vault.json') */
+  /** Custom path for WebDAV storage (optional, defaults to '/PasswordMemo/vault.json') */
   path: string;
 }
 

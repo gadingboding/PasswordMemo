@@ -11,6 +11,6 @@ export function getEmptyWebdavConfig(): WebDAVConfig {
     url: '',
     username: '',
     password: '',
-    path: '/password-note/vault.json',
+    path: '/PasswordMemo/vault.json',
   }
 }
