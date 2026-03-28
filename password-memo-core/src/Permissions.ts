@@ -5,7 +5,6 @@
  * Provides a unified interface for permission checking across different platforms.
  */
 
-import {detectEnvironment, EnvType} from "./utils.js";
 import browser from 'webextension-polyfill';
 
 /**
@@ -43,29 +42,50 @@ export class WebDAVPermissionError extends Error {
  */
 export class BrowserWebDAVPermissions implements WebDAVPermissions {
   /**
+   * Check if browser.permissions API is available
+   */
+  private isPermissionsAPIAvailable(): boolean {
+    return typeof browser !== 'undefined' && 
+           browser.permissions && 
+           typeof browser.permissions.request === 'function' &&
+           typeof browser.permissions.contains === 'function';
+  }
+
+  /**
+   * Extract origin from WebDAV URL
+   */
+  private extractOrigin(webdavUrl: string): string {
+    const url = new URL(webdavUrl);
+    return `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}/*`;
+  }
+
+  /**
    * Request WebDAV server's cross-origin permission
    */
   private async requestWebDAVPermission(webdavUrl: string): Promise<boolean> {
     try {
-      // Check if browser.permissions API is available
-      if (detectEnvironment() != EnvType.BROWSER) {
+      console.log('[WebDAV Permissions] Requesting permission for:', webdavUrl);
+      
+      // If permissions API is not available, assume no permission needed (e.g., Node.js or background context)
+      if (!this.isPermissionsAPIAvailable()) {
+        console.log('[WebDAV Permissions] Permissions API not available, skipping');
         return true;
       }
 
-      const url = new URL(webdavUrl);
-      const origin = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}/*`;
-
+      const origin = this.extractOrigin(webdavUrl);
       const request = {origins: [origin]};
+      
+      console.log('[WebDAV Permissions] Request object:', request);
 
       const granted = await browser.permissions.request(request);
       if (granted) {
-        console.log('WebDAV permission request successful:', origin);
+        console.log('[WebDAV Permissions] Request successful:', origin);
       } else {
-        console.log('WebDAV permission request denied:', origin);
+        console.warn('[WebDAV Permissions] Request denied:', origin);
       }
-      return granted || false;
+      return granted;
     } catch (error) {
-      console.error('WebDAV permission request failed:', error);
+      console.error('[WebDAV Permissions] Request failed:', error);
       return false;
     }
   }
@@ -75,19 +95,22 @@ export class BrowserWebDAVPermissions implements WebDAVPermissions {
    */
   private async checkWebDAVPermission(webdavUrl: string): Promise<boolean> {
     try {
-      // Check if browser.permissions API is available
-      if (typeof window === 'undefined' || !browser.permissions) {
-        return true; // Non-browser environment or permissions API not available
+      // If permissions API is not available, assume permission is granted
+      if (!this.isPermissionsAPIAvailable()) {
+        console.log('[WebDAV Permissions] Permissions API not available, assuming granted');
+        return true;
       }
 
-      const url = new URL(webdavUrl);
-      const origin = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}/*`;
-
+      const origin = this.extractOrigin(webdavUrl);
       const request = {origins: [origin]};
+      
+      console.log('[WebDAV Permissions] Checking permission for:', origin);
 
-      return await browser.permissions.contains(request);
+      const result = await browser.permissions.contains(request);
+      console.log('[WebDAV Permissions] Check result:', result);
+      return result;
     } catch (error) {
-      console.error('Failed to check WebDAV permissions:', error);
+      console.error('[WebDAV Permissions] Check failed:', error);
       return false;
     }
   }
@@ -137,13 +160,26 @@ export class NodeWebDAVPermissions implements WebDAVPermissions {
 }
 
 /**
- * Create appropriate permissions implementation based on environment
+ * Create appropriate permissions implementation based on environment.
+ * Uses BrowserWebDAVPermissions by default for browser/extension environments,
+ * and NodeWebDAVPermissions for Node.js environments.
+ * 
+ * @param forceNode - If true, forces the use of NodeWebDAVPermissions (useful for testing)
  */
-export function createPermissions(): WebDAVPermissions {
-  // Check if we're in a browser environment with chrome permissions API
-  if (detectEnvironment() === EnvType.NODE) {
+export function createPermissions(forceNode: boolean = false): WebDAVPermissions {
+  // If explicitly forced to Node mode, use NodeWebDAVPermissions
+  if (forceNode) {
     return new NodeWebDAVPermissions();
-  } else {
+  }
+  
+  // Check if browser.permissions API is available
+  // This is more reliable than checking for window/document which can be present in extension contexts
+  if (typeof browser !== 'undefined' && 
+      browser.permissions && 
+      typeof browser.permissions.request === 'function') {
     return new BrowserWebDAVPermissions();
   }
+  
+  // Default to NodeWebDAVPermissions for Node.js or when permissions API is not available
+  return new NodeWebDAVPermissions();
 }

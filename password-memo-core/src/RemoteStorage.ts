@@ -77,6 +77,7 @@ export interface DownloadOptions {
 export class WebDAVRemoteStorage implements IRemoteStorage {
   private client: any; // WebDAVClient from webdav library
   private config: WebDAVConfig;
+  private initializedUrl?: string;
 
   constructor(config: WebDAVConfig) {
     this.config = config;
@@ -84,18 +85,39 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
 
   /**
    * Initialize the WebDAV client
+   * Always checks permissions before initializing or reusing the client
    */
   private async initializeClient(): Promise<void> {
+    console.log('[WebDAV RemoteStorage] Initializing client for:', this.config.url);
+    
+    // Check if we need to reinitialize due to URL change
+    const urlChanged = this.initializedUrl !== this.config.url;
+    
+    if (urlChanged) {
+      console.log('[WebDAV RemoteStorage] URL changed from', this.initializedUrl, 'to', this.config.url);
+    }
+    
+    // If client exists but URL changed, we need to reinitialize
+    if (this.client && urlChanged) {
+      console.log('[WebDAV RemoteStorage] Resetting client due to URL change');
+      this.client = null;
+    }
+
     if (this.client) {
+      console.log('[WebDAV RemoteStorage] Client already initialized, reusing');
       return;
     }
 
+    console.log('[WebDAV RemoteStorage] Checking permissions...');
     // Ensure permissions are granted before initializing the client
     const hasPermission = await createPermissions().ensurePermissions(this.config.url);
+    console.log('[WebDAV RemoteStorage] Permission result:', hasPermission);
+    
     if (!hasPermission) {
       throw new WebDAVPermissionError('WebDAV cross-origin permission required');
     }
 
+    console.log('[WebDAV RemoteStorage] Creating WebDAV client...');
     const {createClient} = await import('webdav');
     this.client = createClient(this.config.url, {
       username: this.config.username,
@@ -103,7 +125,12 @@ export class WebDAVRemoteStorage implements IRemoteStorage {
     });
 
     // Test connection
+    console.log('[WebDAV RemoteStorage] Testing connection...');
     await this.client.getDirectoryContents('/');
+    
+    // Track the initialized URL to detect changes
+    this.initializedUrl = this.config.url;
+    console.log('[WebDAV RemoteStorage] Client initialized successfully');
   }
 
   /**
